@@ -1,0 +1,10 @@
+.hello-world .greeting {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 2rem;
+}
+
+.hello-world .name {
+  color: var(--link-color, #3b63fb);
+}
