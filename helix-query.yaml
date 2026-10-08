@@ -1,0 +1,23 @@
+version: 1
+indices:
+  products:
+    target: /products-index.json
+    include:
+      - /demo/products/**
+    exclude:
+      - "**/fragments/**"
+      - "**/drafts/**"
+      - "**/*.json"
+    properties:
+      name:
+        select: div > div > div:has(#name) > div:last-child
+        value: textContent(el)
+      price:
+        select: div > div > div:has(#price) > div:last-child
+        value: textContent(el)
+      status:
+        select: div > div > div:has(#status) > div:last-child
+        value: textContent(el)
+      inStock:
+        select: div > div > div:has(#inStock) > div:last-child
+        value: textContent(el)

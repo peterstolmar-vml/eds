@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="urn:adobe:aue:system:aem" content="aem:https://author-p138879-e1741192.adobeaemcloud.com"/>
+  <title>React · UE SPA Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://universal-editor-service.adobe.io/cors.js" async></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --cyan: #61DAFB; --navy: #20232a; --mid: #282c34; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--navy); color: #fff; }
+
+    .app-nav {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 56px;
+      background: rgba(32,35,42,.96); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(97,218,251,.12);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--cyan); font-size: .9375rem; }
+    .atom { width: 22px; height: 22px; animation: spin 8s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .nav-links { display: flex; gap: 20px; }
+    .nav-links a { color: rgba(255,255,255,.5); text-decoration: none; font-size: .875rem; font-weight: 500; transition: color .15s; }
+    .nav-links a:hover { color: var(--cyan); }
+    .nav-links a.active { color: #fff; }
+    .ue-btn {
+      padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(97,218,251,.35);
+      background: rgba(97,218,251,.1); color: var(--cyan);
+      font-family: inherit; font-size: .8125rem; font-weight: 600; cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .ue-btn:hover { background: rgba(97,218,251,.2); border-color: rgba(97,218,251,.6); }
+
+    .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 640px; }
+
+    .hero-media {
+      background: var(--mid); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 24px; padding: 48px;
+      position: relative; overflow: hidden;
+    }
+    .hero-media::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse at 35% 60%, rgba(97,218,251,.07) 0%, transparent 65%);
+    }
+
+    /* ── Hover-reveal image stage ─────────────────────────────── */
+    .img-stage {
+      position: relative;
+      width: min(340px, 100%);
+      aspect-ratio: 1;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0,0,0,.5);
+      transition:
+        border-radius .55s cubic-bezier(.4,0,.2,1),
+        box-shadow    .55s cubic-bezier(.4,0,.2,1),
+        transform     .55s cubic-bezier(.4,0,.2,1);
+    }
+    .img-stage:hover {
+      border-radius: 4px;
+      box-shadow: 0 32px 64px rgba(97,218,251,.22), 0 0 0 1.5px rgba(97,218,251,.35);
+      transform: scale(1.015);
+    }
+
+    /* bottom layer — zoomed detail crop, revealed on hover */
+    .layer-zoom {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: 72% 18%;   /* pulls toward upper-right detail */
+      transform: scale(1.38);
+      transition: transform .75s cubic-bezier(.4,0,.2,1);
+      filter: saturate(1.5) brightness(.82) contrast(1.05);
+      display: block;
+    }
+    .img-stage:hover .layer-zoom {
+      transform: scale(1.16);      /* gentle de-zoom as the detail settles */
+    }
+
+    /* top layer — wide crop, sweeps to the right on hover */
+    .layer-base {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+      filter: saturate(.85) brightness(.78);
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+      transition: clip-path .6s cubic-bezier(.77,0,.175,1);
+    }
+    .img-stage:hover .layer-base {
+      /* wipe: sweep right — slight diagonal (top edge leads by ~8%) */
+      clip-path: polygon(108% 0, 108% 0, 100% 100%, 100% 100%);
+    }
+
+    /* accent line that trails the sweep edge */
+    .sweep-line {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      /* a thin bright stripe clipped to the same path as layer-base */
+      background: linear-gradient(90deg, transparent 0%, rgba(97,218,251,.55) 50%, transparent 100%);
+      width: 3px; left: calc(100% + 2px);
+      transition: left .6s cubic-bezier(.77,0,.175,1), opacity .6s;
+      opacity: 0;
+    }
+    .img-stage:hover .sweep-line {
+      left: 100%; opacity: 1;
+    }
+
+    /* "hover" hint that fades when the effect fires */
+    .stage-hint {
+      position: absolute; bottom: 14px; right: 16px;
+      font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(97,218,251,.55);
+      transition: opacity .25s;
+      pointer-events: none;
+    }
+    .img-stage:hover .stage-hint { opacity: 0; }
+    /* ───────────────────────────────────────────────────────────── */
+
+    .fw-badge {
+      display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 24px;
+      background: rgba(40,44,52,.9); border: 1px solid rgba(97,218,251,.25);
+      font-size: .8125rem; font-weight: 600; color: var(--cyan); backdrop-filter: blur(8px);
+    }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; animation: blink 2s ease-in-out infinite; }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+
+    .hero-content {
+      padding: clamp(32px,6vw,80px); display: flex; flex-direction: column;
+      justify-content: center; gap: 20px; background: #fff; color: #111;
+    }
+    .eyebrow { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #1a8fa8; }
+    h1 { font-size: clamp(2.25rem,4vw,4rem); font-weight: 900; line-height: .96; letter-spacing: -.04em; color: #111; }
+
+    .metrics-strip {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+      padding: 16px; border-radius: 12px;
+      background: rgba(97,218,251,.05); border: 1.5px dashed rgba(97,218,251,.3);
+      position: relative;
+    }
+    .metrics-strip::before {
+      content: '<AppMetrics />'; position: absolute; top: -11px; left: 12px;
+      font-size: .68rem; font-family: 'Courier New', monospace; font-weight: 700;
+      background: #fff; padding: 0 6px; color: #1a8fa8;
+    }
+    .metric { text-align: center; }
+    .metric-val { font-size: 1.375rem; font-weight: 900; color: #111; }
+    .metric-lbl { font-size: .68rem; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; }
+
+    .description { font-size: 1.0625rem; line-height: 1.65; color: #4b5563; }
+    .cta {
+      align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 26px; border-radius: 8px; background: var(--cyan); color: var(--navy);
+      font-weight: 700; text-decoration: none; font-size: .9375rem;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(97,218,251,.35); }
+
+    .feature-section {
+      background: var(--mid); padding: 52px 32px;
+      border-top: 1px solid rgba(97,218,251,.08);
+    }
+    .feature-section-label {
+      font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(97,218,251,.35); text-align: center; margin-bottom: 32px;
+      font-family: 'Courier New', monospace;
+    }
+    .feature-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; max-width: 960px; margin: 0 auto; }
+    .feature-card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(97,218,251,.12);
+      border-radius: 14px; padding: 24px 22px; cursor: pointer;
+      transition: border-color .2s, background .2s, transform .2s;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .feature-card:hover { border-color: rgba(97,218,251,.32); background: rgba(97,218,251,.06); transform: translateY(-2px); }
+    .feature-card.open { border-color: rgba(97,218,251,.45); background: rgba(97,218,251,.08); }
+    .feature-eyebrow { font-size: .625rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(97,218,251,.45); font-family: 'Courier New', monospace; }
+    .feature-icon { font-size: 1.75rem; line-height: 1; }
+    .feature-title { font-size: .9375rem; font-weight: 700; color: #fff; }
+    .feature-body { font-size: .8125rem; line-height: 1.65; color: rgba(255,255,255,.5); overflow: hidden; transition: max-height .3s ease; }
+    .feature-chevron { font-size: .7rem; color: rgba(97,218,251,.4); align-self: flex-end; transition: transform .2s; }
+    .feature-card.open .feature-chevron { transform: rotate(180deg); }
+
+    @media (max-width: 720px) { .hero { grid-template-columns: 1fr; } .feature-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  const { useState, useEffect, createElement: h } = React;
+  const PUBLISH = 'https://publish-p138879-e1741192.adobeaemcloud.com';
+  const GRAPHQL = PUBLISH + '/graphql/execute.json/global/hero';
+  const RES = 'urn:aem:/content/dam/ue-demo/fragments/home-hero/jcr:content/data/master';
+  const FB = {
+    eyebrow: 'React · AEM Demo', title: 'Editable from AEM',
+    description: 'This SPA renders Universal Editor annotations so authors can edit fields in context.',
+    ctaLabel: 'Get started',
+    image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+  };
+
+  const FEATURES = [
+    { id: 'feature-headless',        eyebrow: 'feature', icon: '⚡', title: 'Headless Delivery',   body: 'Content served via GraphQL persisted queries. This page fetches its hero from AEM at load time — no build step needed.' },
+    { id: 'feature-personalization', eyebrow: 'feature', icon: '🎯', title: 'Personalization',     body: 'Target audiences with Adobe Target. Segment content by context, behaviour, and profile without a redeploy.' },
+    { id: 'feature-experimentation', eyebrow: 'feature', icon: '🧪', title: 'Experimentation',     body: 'A/B test any content variation without touching code. Toggle challengers directly from the author UI.' },
+  ];
+
+  const IN_UE = (() => { try { return window.self !== window.top; } catch { return true; } })();
+
+  function FeatureCard({ feat, cf }) {
+    const [open, setOpen] = useState(false);
+    const res = 'urn:aem:/content/dam/ue-demo/fragments/' + feat.id + '/jcr:content/data/master';
+    const eyebrow = cf?.eyebrow || feat.eyebrow;
+    const title = cf?.title || feat.title;
+    const body = cf?.description?.plaintext || cf?.description?.html || cf?.description || feat.body;
+    // In UE: render as a static component (no toggle, full height) so all fields are clickable.
+    // On live page: accordion behaviour with no component annotation (avoids the growth loop).
+    const cardProps = IN_UE ? {
+      className: 'feature-card open',
+      'data-aue-resource': res,
+      'data-aue-type': 'component',
+      'data-aue-label': feat.title,
+      'data-aue-model': 'hero',
+    } : {
+      className: 'feature-card' + (open ? ' open' : ''),
+      onClick: () => setOpen(o => !o),
+    };
+    return h('div', cardProps,
+      h('p', {
+        className: 'feature-eyebrow',
+        'data-aue-resource': res,
+        'data-aue-prop': 'eyebrow',
+        'data-aue-type': 'text',
+        'data-aue-label': 'Eyebrow',
+      }, eyebrow),
+      h('div', { className: 'feature-icon' }, feat.icon),
+      h('div', {
+        className: 'feature-title',
+        'data-aue-resource': res,
+        'data-aue-prop': 'title',
+        'data-aue-type': 'text',
+        'data-aue-label': 'Title',
+      }, title),
+      h('div', {
+        className: 'feature-body',
+        style: { maxHeight: IN_UE ? 'none' : (open ? '160px' : '44px') },
+        'data-aue-resource': res,
+        'data-aue-prop': 'description',
+        'data-aue-type': 'text',
+        'data-aue-label': 'Description',
+      }, body),
+      !IN_UE && h('span', { className: 'feature-chevron' }, '▾')
+    );
+  }
+
+  function FeatureSection() {
+    const [cfs, setCfs] = useState({});
+    const [fetchErr, setFetchErr] = useState(null);
+    useEffect(() => {
+      fetch(PUBLISH + '/graphql/execute.json/global/featurelist?_v=' + Date.now(), { headers: { Accept: 'application/json' } })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(d => {
+          const map = {};
+          (d?.data?.homeHeroList?.items || []).forEach(item => {
+            const id = item._path.split('/').pop();
+            map[id] = item;
+          });
+          setCfs(map);
+        })
+        .catch(e => { console.error('[featurelist]', e); setFetchErr(e.message); });
+    }, []);
+    return h('section', { className: 'feature-section' },
+      h('p', { className: 'feature-section-label' }, '⚛ <FeatureCard /> — three React components with local state' + (fetchErr ? ' ✗ ' + fetchErr : '')),
+      h('div', { className: 'feature-grid' },
+        ...FEATURES.map(f => h(FeatureCard, { key: f.id, feat: f, cf: cfs[f.id] }))
+      )
+    );
+  }
+
+  function useCount(target) {
+    const [n, setN] = useState(0);
+    useEffect(() => {
+      const step = Math.ceil(target / 40);
+      const id = setInterval(() => setN(c => {
+        const next = Math.min(c + step, target);
+        if (next >= target) clearInterval(id);
+        return next;
+      }), 28);
+      return () => clearInterval(id);
+    }, []);
+    return n;
+  }
+
+  function AppMetrics() {
+    const sessions = useCount(1247);
+    return h('div', { className: 'metrics-strip' },
+      h('div', { className: 'metric' },
+        h('div', { className: 'metric-val' }, sessions.toLocaleString()),
+        h('div', { className: 'metric-lbl' }, 'Sessions')
+      ),
+      h('div', { className: 'metric' },
+        h('div', { className: 'metric-val' }, '94%'),
+        h('div', { className: 'metric-lbl' }, 'Satisfaction')
+      ),
+      h('div', { className: 'metric' },
+        h('div', { className: 'metric-val' }, '2.4s'),
+        h('div', { className: 'metric-lbl' }, 'TTI')
+      )
+    );
+  }
+
+  function Hero({ c }) {
+    return h('section', {
+        className: 'hero',
+        'data-aue-resource': RES, 'data-aue-type': 'component',
+        'data-aue-label': 'Hero CF', 'data-aue-model': 'hero',
+      },
+      h('div', { className: 'hero-media' },
+        h('div', { className: 'img-stage' },
+          h('img', { className: 'layer-zoom', src: c.image, alt: '' }),
+          h('img', {
+            className: 'layer-base', src: c.image, alt: '',
+            'data-aue-resource': RES, 'data-aue-prop': 'contentReference',
+            'data-aue-type': 'image', 'data-aue-label': 'Hero Image',
+          }),
+          h('div', { className: 'stage-hint' }, 'hover →'),
+        ),
+        h('div', { className: 'fw-badge' },
+          h('span', { className: 'pulse' }),
+          ' ⚛ Rendered by React 18'
+        )
+      ),
+      h('div', { className: 'hero-content' },
+        h('p', {
+            className: 'eyebrow',
+            'data-aue-resource': RES, 'data-aue-prop': 'eyebrow',
+            'data-aue-type': 'text', 'data-aue-label': 'Eyebrow',
+          }, c.eyebrow),
+        h('h1', {
+            'data-aue-resource': RES, 'data-aue-prop': 'title',
+            'data-aue-type': 'text', 'data-aue-label': 'Title',
+          }, c.title),
+        h(AppMetrics, null),
+        h('p', {
+            className: 'description',
+            'data-aue-resource': RES, 'data-aue-prop': 'description',
+            'data-aue-type': 'richtext', 'data-aue-label': 'Description',
+          }, c.description),
+        h('a', {
+            className: 'cta', href: '#more',
+            'data-aue-resource': RES, 'data-aue-prop': 'ctaLabel',
+            'data-aue-type': 'text', 'data-aue-label': 'CTA',
+          }, c.ctaLabel + ' →')
+      )
+    );
+  }
+
+  function AtomIcon() {
+    return h('svg', { className: 'atom', viewBox: '0 0 100 100', fill: 'none' },
+      h('ellipse', { cx: 50, cy: 50, rx: 46, ry: 17, stroke: '#61DAFB', strokeWidth: 5 }),
+      h('ellipse', { cx: 50, cy: 50, rx: 46, ry: 17, stroke: '#61DAFB', strokeWidth: 5, transform: 'rotate(60 50 50)' }),
+      h('ellipse', { cx: 50, cy: 50, rx: 46, ry: 17, stroke: '#61DAFB', strokeWidth: 5, transform: 'rotate(120 50 50)' }),
+      h('circle', { cx: 50, cy: 50, r: 7, fill: '#61DAFB' })
+    );
+  }
+
+  function App() {
+    const [content, setContent] = useState(null);
+
+    function fetchHero() {
+      fetch(GRAPHQL + '?_v=' + Date.now(), { headers: { Accept: 'application/json' } })
+        .then(r => r.json())
+        .then(d => {
+          const item = d?.data?.homeHeroByPath?.item || d;
+          const imgUrl = item?.contentReference?._publishUrl
+            || (item?.contentReference?._path ? PUBLISH + item.contentReference._path : null)
+            || item?.image || FB.image;
+          setContent({ ...FB, ...item,
+            image: imgUrl,
+            description: item?.description?.plaintext || item?.description?.html || item?.description || FB.description,
+          });
+        })
+        .catch(() => setContent(FB));
+    }
+
+    useEffect(() => {
+      fetchHero();
+      function onMsg(e) {
+        if (e.data?.type === 'aue:content-patch' || e.data?.type === 'aue:content-update') {
+          setTimeout(fetchHero, 600);
+        }
+      }
+      window.addEventListener('message', onMsg);
+      return () => window.removeEventListener('message', onMsg);
+    }, []);
+
+    if (!content) return h('p', { style: { padding: '32px', opacity: .4 } }, 'Loading React…');
+
+    return h(React.Fragment, null,
+      h('nav', { className: 'app-nav' },
+        h('div', { className: 'nav-brand' }, h(AtomIcon, null), 'MyApp · React'),
+        h('div', { className: 'nav-links' },
+          h('a', { href: '#' }, 'Products'),
+          h('a', { href: '#' }, 'Docs'),
+          h('a', { href: '#', className: 'active' }, 'Demo')
+        ),
+        h('button', {
+          className: 'ue-btn',
+          onClick: () => window.open('https://experience.adobe.com/#/aem/editor/canvas/' + window.location.href.replace('https://', ''), '_blank'),
+        }, 'Edit in UE')
+      ),
+      h(Hero, { c: content }),
+      h(FeatureSection, null)
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(h(App, null));
+</script>
+</body>
+</html>
