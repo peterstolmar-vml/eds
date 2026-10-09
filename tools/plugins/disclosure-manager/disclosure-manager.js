@@ -16,7 +16,7 @@ function parsePage(html) {
   superscripts = [];
 
   const numberedMatch = html.match(
-    /disclosures<\/div><\/div><\/div>([\s\S]*?)(?:<div class="section-metadata"|<\/main>)/,
+    /<p>disclosures<\/p><\/div><\/div><\/div>([\s\S]*?)<\/div><\/main>/,
   );
   const searchZone = numberedMatch ? numberedMatch[1] : '';
 
