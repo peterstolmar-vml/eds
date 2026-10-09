@@ -16,16 +16,15 @@ function parsePage(html) {
   superscripts = [];
 
   const numberedMatch = html.match(
-    /class="disclosures-numbered"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/,
+    /disclosures<\/div><\/div><\/div>([\s\S]*?)(?:<div class="section-metadata"|<\/main>)/,
   );
-  const searchZone = numberedMatch ? numberedMatch[0] : '';
+  const searchZone = numberedMatch ? numberedMatch[1] : '';
 
-  const fragRe = /class="fragment"[\s\S]*?<p>([^<]+)<\/p>/g;
+  const pathRe = /<p>([^<]*\/demo\/disclosures\/[^<]*)<\/p>/g;
   let m;
   // eslint-disable-next-line no-cond-assign
-  while ((m = fragRe.exec(searchZone)) !== null) {
-    const path = m[1].trim();
-    if (path.includes('disclosure')) disclosures.push({ path });
+  while ((m = pathRe.exec(searchZone)) !== null) {
+    disclosures.push({ path: m[1].trim() });
   }
 
   const supRe = /<a href="(#disclosure-(\d+))"><sup>\d+<\/sup><\/a>/g;
@@ -64,7 +63,7 @@ function renderAudit() {
   const oks = [];
 
   if (!disclosures.length) {
-    issues.push({ type: 'warn', msg: 'No disclosures-numbered block found on this page.' });
+    issues.push({ type: 'warn', msg: 'No numbered disclosures section found on this page.' });
   }
 
   superscripts.filter((s) => !s.isSub).forEach((s) => {
@@ -102,7 +101,7 @@ function renderManage() {
   if (!disclosures.length) {
     const empty = document.createElement('div');
     empty.className = 'empty';
-    empty.textContent = 'No disclosure fragments found inside a disclosures-numbered block.';
+    empty.textContent = 'No numbered disclosure fragments found. Add a section-metadata block with disclosures / numbered.';
     list.appendChild(empty);
     return;
   }
@@ -167,11 +166,11 @@ async function applyUpdates(context, token) {
   const { org, repo, path } = context;
   let html = rawHtml;
 
-  const oldFragsRe = /(class="disclosures-numbered"[\s\S]*?<div>\s*<div>)([\s\S]*?)(<\/div>\s*<\/div>\s*<\/div>)/;
+  const numberedSectionRe = /(disclosures<\/div><\/div><\/div>)([\s\S]*?)((?:<div class="section-metadata"|<\/main>))/;
   const newFrags = disclosures
-    .map((d) => `<div class="fragment"><div><div><p>${d.path}</p></div></div></div>`)
+    .map((d, i) => `<div id="disclosure-${i + 1}" class="fragment"><div><div><p>${d.path}</p></div></div></div>`)
     .join('\n');
-  html = html.replace(oldFragsRe, (match, before, middle, after) => `${before}\n${newFrags}\n${after}`);
+  html = html.replace(numberedSectionRe, (match, before, middle, after) => `${before}\n${newFrags}\n${after}`);
 
   const pathToNewNum = {};
   disclosures.forEach((d, i) => {
