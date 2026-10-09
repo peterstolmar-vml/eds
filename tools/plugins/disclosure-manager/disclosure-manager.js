@@ -15,17 +15,17 @@ function parsePage(html) {
   disclosures = [];
   superscripts = [];
 
+  // Only find paths inside disclosures numbered block
   const numberedMatch = html.match(
-    /class="disclosures-numbered"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/,
+    /class="disclosures numbered"[\s\S]*?<\/div>\s*<\/div>/,
   );
   const searchZone = numberedMatch ? numberedMatch[0] : '';
 
-  const fragRe = /class="fragment"[\s\S]*?<p>([^<]+)<\/p>/g;
+  const pathRe = /<p>([^<]*\/demo\/disclosures\/[^<]*)<\/p>/g;
   let m;
   // eslint-disable-next-line no-cond-assign
-  while ((m = fragRe.exec(searchZone)) !== null) {
-    const path = m[1].trim();
-    if (path.includes('disclosure')) disclosures.push({ path });
+  while ((m = pathRe.exec(searchZone)) !== null) {
+    disclosures.push({ path: m[1].trim() });
   }
 
   const supRe = /<a href="(#disclosure-(\d+))"><sup>\d+<\/sup><\/a>/g;
