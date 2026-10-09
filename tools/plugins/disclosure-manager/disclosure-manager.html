@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Disclosure Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="icon" href="data:,">
+    <style>
+      html { display: flex; }
+      html, body { min-height: 100%; min-width: 100%; margin: 0; }
+      #app { display: flex; flex-direction: column; height: 100vh; font-family: adobe-clean, 'Source Sans Pro', sans-serif; }
+      .toolbar { display: flex; gap: 6px; padding: 10px 12px; background: #fff; border-bottom: 1px solid #e0e0e0; align-items: center; flex-shrink: 0; }
+      .toolbar h1 { font-size: 13px; font-weight: 700; margin: 0; flex: 1; }
+      button { font-size: 12px; padding: 5px 12px; border-radius: 16px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: 600; }
+      button:hover { background: #f0f0ff; border-color: #7155fa; }
+      button.primary { background: linear-gradient(95deg, #b539c8 0%, #7155fa 66%, #3b63fb 100%); color: #fff; border: none; }
+      .tabs { display: flex; border-bottom: 2px solid #e0e0e0; background: #fff; flex-shrink: 0; }
+      .tab { padding: 8px 16px; font-size: 12px; font-weight: 600; cursor: pointer; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+      .tab.active { color: #7155fa; border-bottom-color: #7155fa; }
+      .panel { flex: 1; overflow-y: auto; padding: 10px 12px; }
+      .disclosure-list { display: flex; flex-direction: column; gap: 6px; }
+      .disclosure-item { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 10px; display: flex; align-items: flex-start; gap: 8px; cursor: grab; }
+      .disclosure-item.drag-over { border-color: #7155fa; }
+      .disc-num { min-width: 22px; height: 22px; background: linear-gradient(135deg, #7155fa, #3b63fb); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+      .disc-path { font-size: 11px; color: #999; }
+      .drag-handle { color: #bbb; font-size: 14px; cursor: grab; flex-shrink: 0; }
+      .audit-section { margin-bottom: 16px; }
+      .audit-section h2 { font-size: 12px; font-weight: 700; margin: 0 0 6px 0; text-transform: uppercase; color: #666; }
+      .audit-item { border-radius: 6px; padding: 8px 10px; font-size: 12px; border-left: 3px solid #ccc; margin-bottom: 4px; }
+      .audit-item.ok { border-color: #43a047; background: #f1f8f1; }
+      .audit-item.warn { border-color: #fb8c00; background: #fff8f0; }
+      .audit-item.error { border-color: #e53935; background: #fff0f0; }
+      .status-bar { padding: 8px 12px; font-size: 11px; color: #666; border-top: 1px solid #e0e0e0; background: #fff; flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+      .dot.ok { background: #43a047; }
+      .dot.warn { background: #fb8c00; }
+      .dot.loading { background: #7155fa; animation: pulse 1s infinite; }
+      @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+      .empty { text-align: center; color: #aaa; font-size: 12px; padding: 32px 0; }
+      .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #7155fa; padding: 4px 0 2px; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="toolbar">
+        <h1>Disclosure Manager</h1>
+        <button id="btn-refresh">&#8635;</button>
+        <button id="btn-apply" class="primary">Apply &amp; Update</button>
+      </div>
+      <div class="tabs">
+        <div class="tab active" data-tab="manage">Manage</div>
+        <div class="tab" data-tab="audit">Audit</div>
+      </div>
+      <div class="panel" id="panel-manage">
+        <div id="disclosure-list" class="disclosure-list">
+          <div class="empty">Loading page...</div>
+        </div>
+      </div>
+      <div class="panel" id="panel-audit" style="display:none">
+        <div id="audit-output"><div class="empty">Loading...</div></div>
+      </div>
+      <div class="status-bar">
+        <div class="dot loading" id="status-dot"></div>
+        <span id="status-text">Connecting...</span>
+      </div>
+    </div>
+    <script src="https://da.live/nx/utils/sdk.js" type="module"></script>
+    <script src="/tools/plugins/disclosure-manager/disclosure-manager.js" type="module"></script>
+  </body>
+</html>
