@@ -152,8 +152,9 @@ function renderManage() {
   });
 }
 
-async function applyUpdates(token) {
+async function applyUpdates(context, token) {
   setStatus('Applying...', 'loading');
+  const { org, repo, path } = context;
   let html = rawHtml;
   const oldFragsRe = (
     /(class="disclosures-numbered"[\s\S]*?<div>\s*<div>)([\s\S]*?)(<\/div>\s*<\/div>\s*<\/div>)/
@@ -177,7 +178,6 @@ async function applyUpdates(token) {
       return `<sup><a href="#disclosure-${newNum}">${newNum}</a></sup>`;
     },
   );
-  const { org, repo, path } = window.__DA_CONTEXT__;
   const url = `https://content.da.live/${org}/${repo}${path}`;
   let res;
   try {
@@ -221,7 +221,6 @@ async function fetchPage(context, token) {
 
 (async () => {
   const { context, token } = await DA_SDK;
-  window.__DA_CONTEXT__ = context;
 
   document.querySelectorAll('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -234,7 +233,7 @@ async function fetchPage(context, token) {
   });
 
   document.getElementById('btn-refresh').addEventListener('click', () => fetchPage(context, token));
-  document.getElementById('btn-apply').addEventListener('click', () => applyUpdates(token));
+  document.getElementById('btn-apply').addEventListener('click', () => applyUpdates(context, token));
 
   fetchPage(context, token);
 })();
