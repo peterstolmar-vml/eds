@@ -14,8 +14,12 @@ function setStatus(msg, state) {
 function parsePage(html) {
   disclosures = [];
   superscripts = [];
-  const numberedMatch = html.match(/class="disclosures-numbered"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/);
-  const searchZone = numberedMatch ? numberedMatch[0] : html;
+
+  const numberedMatch = html.match(
+    /class="disclosures-numbered"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/,
+  );
+  const searchZone = numberedMatch ? numberedMatch[0] : '';
+
   const fragRe = /class="fragment"[\s\S]*?<p>([^<]+)<\/p>/g;
   let m;
   // eslint-disable-next-line no-cond-assign
@@ -23,15 +27,19 @@ function parsePage(html) {
     const path = m[1].trim();
     if (path.includes('disclosure')) disclosures.push({ path });
   }
-  const supRe = /<sup><a href="([^"]*)"[^>]*>(\d+)<\/a><\/sup>/g;
+
+  // superscript pattern: <a href="#disclosure-N"><sup>N</sup></a>
+  const supRe = /<a href="(#disclosure-(\d+))"><sup>\d+<\/sup><\/a>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = supRe.exec(html)) !== null) {
-    superscripts.push({ href: m[1], text: m[2], isSub: false });
+    superscripts.push({ href: m[1], num: Number.parseInt(m[2], 10), isSub: false });
   }
+
+  // subscripts — never renumber
   const subRe = /<sub>(\d+)<\/sub>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = subRe.exec(html)) !== null) {
-    superscripts.push({ href: null, text: m[1], isSub: true });
+    superscripts.push({ href: null, num: Number.parseInt(m[1], 10), isSub: true });
   }
 }
 
@@ -40,31 +48,25 @@ function renderAudit() {
   out.textContent = '';
   const issues = [];
   const oks = [];
-  const sups = superscripts.filter((s) => !s.isSub);
+
   if (!disclosures.length) {
     issues.push({ type: 'warn', msg: 'No disclosures-numbered block found on this page.' });
   }
-  sups.forEach((s) => {
-    const num = Number.parseInt(s.text, 10);
-    if (Number.isNaN(num)) {
-      issues.push({ type: 'warn', msg: `Superscript "${s.text}" is not a number.` });
-      return;
-    }
-    const disc = disclosures[num - 1];
+
+  superscripts.filter((s) => !s.isSub).forEach((s) => {
+    const disc = disclosures[s.num - 1];
     if (!disc) {
       issues.push({
         type: 'error',
-        msg: `Superscript ${num} has no matching disclosure. Only ${disclosures.length} found.`,
+        msg: `Superscript ${s.num} has no matching disclosure. Only ${disclosures.length} found.`,
       });
-    } else if (!s.href) {
-      issues.push({ type: 'warn', msg: `Superscript ${num} (${disc.path}) has no anchor link.` });
-    } else if (s.href !== `#disclosure-${num}`) {
+    } else if (s.href !== `#disclosure-${s.num}`) {
       issues.push({
         type: 'warn',
-        msg: `Superscript ${num} links to "${s.href}" but expected "#disclosure-${num}".`,
+        msg: `Superscript ${s.num} links to "${s.href}" but expected "#disclosure-${s.num}".`,
       });
     } else {
-      oks.push(`Superscript ${num} -> ${disc.path} OK`);
+      oks.push(`Superscript ${s.num} → ${disc.path} ✓`);
     }
   });
 
@@ -86,6 +88,7 @@ function renderAudit() {
 
   makeSection('Issues', issues);
   makeSection('Passing', oks.map((msg) => ({ type: 'ok', msg })));
+
   if (!issues.length && !oks.length) {
     const empty = document.createElement('div');
     empty.className = 'empty';
@@ -112,13 +115,13 @@ function renderManage() {
     const item = document.createElement('div');
     item.className = 'disclosure-item';
     item.draggable = true;
-    item.dataset.index = i;
+    item.dataset.index = String(i);
     const handle = document.createElement('div');
     handle.className = 'drag-handle';
     handle.textContent = '⠿';
     const num = document.createElement('div');
     num.className = 'disc-num';
-    num.textContent = i + 1;
+    num.textContent = String(i + 1);
     const body = document.createElement('div');
     body.style.flex = '1';
     const pathEl = document.createElement('div');
@@ -135,10 +138,7 @@ function renderManage() {
       e.dataTransfer.effectAllowed = 'move';
     });
     item.addEventListener('dragend', () => item.classList.remove('dragging'));
-    item.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      item.classList.add('drag-over');
-    });
+    item.addEventListener('dragover', (e) => { e.preventDefault(); item.classList.add('drag-over'); });
     item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
     item.addEventListener('drop', (e) => {
       e.preventDefault();
@@ -156,6 +156,7 @@ async function applyUpdates(context, token) {
   setStatus('Applying...', 'loading');
   const { org, repo, path } = context;
   let html = rawHtml;
+
   const oldFragsRe = (
     /(class="disclosures-numbered"[\s\S]*?<div>\s*<div>)([\s\S]*?)(<\/div>\s*<\/div>\s*<\/div>)/
   );
@@ -165,19 +166,22 @@ async function applyUpdates(context, token) {
   html = html.replace(oldFragsRe, (match, before, middle, after) => (
     `${before}\n${newFrags}\n${after}`
   ));
+
   const pathToNewNum = {};
   disclosures.forEach((d, i) => {
     const pm = d.path.match(/disclosure-(\d+)$/);
     if (pm) pathToNewNum[Number.parseInt(pm[1], 10)] = i + 1;
   });
+
   html = html.replace(
-    /<sup><a href="#disclosure-(\d+)"[^>]*>\d+<\/a><\/sup>/g,
+    /<a href="#disclosure-(\d+)"><sup>\d+<\/sup><\/a>/g,
     (match, oldNum) => {
       const newNum = pathToNewNum[Number.parseInt(oldNum, 10)];
       if (newNum === undefined) return match;
-      return `<sup><a href="#disclosure-${newNum}">${newNum}</a></sup>`;
+      return `<a href="#disclosure-${newNum}"><sup>${newNum}</sup></a>`;
     },
   );
+
   const url = `https://content.da.live/${org}/${repo}${path}`;
   let res;
   try {
@@ -214,9 +218,11 @@ async function fetchPage(context, token) {
   parsePage(rawHtml);
   renderManage();
   renderAudit();
-  const n = disclosures.length;
-  const s = superscripts.filter((x) => !x.isSub).length;
-  setStatus(`Found ${n} disclosure(s), ${s} superscript(s)`, 'ok');
+  setStatus(
+    `Found ${disclosures.length} disclosure(s), `
+    + `${superscripts.filter((x) => !x.isSub).length} superscript(s)`,
+    'ok',
+  );
 }
 
 (async () => {
@@ -232,8 +238,12 @@ async function fetchPage(context, token) {
     });
   });
 
-  document.getElementById('btn-refresh').addEventListener('click', () => fetchPage(context, token));
-  document.getElementById('btn-apply').addEventListener('click', () => applyUpdates(context, token));
+  document.getElementById('btn-refresh').addEventListener(
+    'click', () => fetchPage(context, token),
+  );
+  document.getElementById('btn-apply').addEventListener(
+    'click', () => applyUpdates(context, token),
+  );
 
   fetchPage(context, token);
 })();
