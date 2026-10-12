@@ -11,6 +11,11 @@ async function listDisclosures() {
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) return [];
   const items = await res.json();
+
+  // Debug lines
+  const raw = await res.json();
+  console.log('DA folder response:', JSON.stringify(raw).slice(0, 500));
+
   return items
     .filter((item) => item.ext === 'html')
     .map((item) => ({
