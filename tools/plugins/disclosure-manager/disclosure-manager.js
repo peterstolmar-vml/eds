@@ -1,7 +1,7 @@
 /* eslint-disable import/no-unresolved */
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 
-const { context, token, actions } = await DA_SDK;
+const { context, token } = await DA_SDK;
 
 let rawHtml = '';
 let disclosures = [];
@@ -13,45 +13,19 @@ function setStatus(msg, state) {
   document.getElementById('status-dot').className = `dot ${state || 'ok'}`;
 }
 
-async function fetchPage() {
-  setStatus('Loading page...', 'loading');
-  const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
-  let res;
-  try {
-    res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  } catch (e) {
-    setStatus(`Network error: ${e.message}`, 'warn');
-    return;
-  }
-  if (!res.ok) {
-    setStatus(`Failed to load page (${res.status})`, 'warn');
-    return;
-  }
-  rawHtml = await res.text();
-  parsePage(rawHtml);
-  renderManage();
-  renderAudit();
-  const n = disclosures.length;
-  const s = superscripts.filter((x) => !x.isSub).length;
-  setStatus(`Found ${n} disclosure(s), ${s} superscript(s)`, 'ok');
-}
-
 function parsePage(html) {
   disclosures = [];
   superscripts = [];
 
-  // Confirm the numbered disclosures section exists
   const hasNumbered = /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i
     .test(html);
   if (!hasNumbered) return;
 
-  // Find the section-metadata block and scan forward from there
   const metaIdx = html.search(
     /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i,
   );
   const zone = html.slice(metaIdx);
 
-  // Match <h3>N.</h3> ... fragment path pairs
   const pairRe = /<h3>(\d+)\.<\/h3>[\s\S]*?class="fragment"[\s\S]*?<p>([^<]+)<\/p>/g;
   let m;
   // eslint-disable-next-line no-cond-assign
@@ -62,14 +36,12 @@ function parsePage(html) {
     });
   }
 
-  // Superscripts: <a href="#N"><sup>N</sup></a>
   const supRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = supRe.exec(html)) !== null) {
     superscripts.push({ href: m[1], text: m[2], isSub: false });
   }
 
-  // Subscripts: <sub>N</sub>
   const subRe = /<sub>(\d+)<\/sub>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = subRe.exec(html)) !== null) {
@@ -169,7 +141,10 @@ function renderAudit() {
         msg: `Superscript ${num} has no matching disclosure (only ${disclosures.length} found).`,
       });
     } else if (!s.href) {
-      issues.push({ type: 'warn', msg: `Superscript ${num} (${disc.path}) has no anchor link.` });
+      issues.push({
+        type: 'warn',
+        msg: `Superscript ${num} (${disc.path}) has no anchor link.`,
+      });
     } else if (s.href !== expected) {
       issues.push({
         type: 'warn',
@@ -238,7 +213,6 @@ function buildNumberedSection(list) {
 }
 
 function findSectionBounds(html) {
-  // Walk back from the section-metadata match to find the opening <div> of the section
   const metaIdx = html.search(
     /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i,
   );
@@ -248,7 +222,6 @@ function findSectionBounds(html) {
   const sectionStart = before.lastIndexOf('<div>');
   if (sectionStart === -1) return null;
 
-  // Walk forward counting div depth to find the matching closing </div>
   let depth = 0;
   let i = sectionStart;
   while (i < html.length) {
@@ -279,7 +252,6 @@ async function applyUpdates() {
   const newSection = buildNumberedSection(disclosures);
   html = `${html.slice(0, bounds.start)}<div>\n${newSection}\n</div>${html.slice(bounds.end)}`;
 
-  // Build old heading number → new number map for renumbering superscript anchors
   const oldToNew = {};
   disclosures.forEach((d, i) => {
     if (d.headingNum) oldToNew[d.headingNum] = i + 1;
@@ -313,6 +285,29 @@ async function applyUpdates() {
   renderManage();
   renderAudit();
   setStatus('Done! Disclosures reordered and superscripts renumbered.', 'ok');
+}
+
+async function fetchPage() {
+  setStatus('Loading page...', 'loading');
+  const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
+  let res;
+  try {
+    res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  } catch (e) {
+    setStatus(`Network error: ${e.message}`, 'warn');
+    return;
+  }
+  if (!res.ok) {
+    setStatus(`Failed to load page (${res.status})`, 'warn');
+    return;
+  }
+  rawHtml = await res.text();
+  parsePage(rawHtml);
+  renderManage();
+  renderAudit();
+  const n = disclosures.length;
+  const s = superscripts.filter((x) => !x.isSub).length;
+  setStatus(`Found ${n} disclosure(s), ${s} superscript(s)`, 'ok');
 }
 
 document.querySelectorAll('.tab').forEach((tab) => {
