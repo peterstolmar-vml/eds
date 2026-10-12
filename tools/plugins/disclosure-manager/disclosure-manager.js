@@ -36,12 +36,33 @@ function parsePage(html) {
     });
   }
 
-  const supRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
+  // Match anchored superscripts: <a href="#N"><sup>N</sup></a>
+  const supAnchoredRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
   // eslint-disable-next-line no-cond-assign
-  while ((m = supRe.exec(html)) !== null) {
+  while ((m = supAnchoredRe.exec(html)) !== null) {
     superscripts.push({ href: m[1], text: m[2], isSub: false });
   }
 
+  // Match bare superscripts not wrapped in an anchor: <sup>N</sup>
+  // Use a two-pass approach: collect all <sup> positions, exclude those already matched
+  const anchoredPositions = new Set();
+  const anchorScanRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
+  // eslint-disable-next-line no-cond-assign
+  while ((m = anchorScanRe.exec(html)) !== null) {
+    for (let p = m.index; p < m.index + m[0].length; p += 1) {
+      anchoredPositions.add(p);
+    }
+  }
+
+  const bareSuperRe = /<sup>(\d+)<\/sup>/g;
+  // eslint-disable-next-line no-cond-assign
+  while ((m = bareSuperRe.exec(html)) !== null) {
+    if (!anchoredPositions.has(m.index)) {
+      superscripts.push({ href: null, text: m[1], isSub: false });
+    }
+  }
+
+  // Subscripts: <sub>N</sub>
   const subRe = /<sub>(\d+)<\/sub>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = subRe.exec(html)) !== null) {
@@ -127,6 +148,7 @@ function renderAudit() {
     issues.push({ type: 'warn', msg: 'No numbered disclosures section found on this page.' });
   }
 
+  // Check every superscript has a matching disclosure and correct href
   sups.forEach((s) => {
     const num = Number.parseInt(s.text, 10);
     if (Number.isNaN(num)) {
@@ -142,8 +164,8 @@ function renderAudit() {
       });
     } else if (!s.href) {
       issues.push({
-        type: 'warn',
-        msg: `Superscript ${num} (${disc.path}) has no anchor link.`,
+        type: 'error',
+        msg: `Superscript ${num} (${disc.path}) has no anchor link — wrap in <a href="${expected}">.`,
       });
     } else if (s.href !== expected) {
       issues.push({
@@ -155,6 +177,7 @@ function renderAudit() {
     }
   });
 
+  // Check every disclosure has at least one superscript referencing it
   disclosures.forEach((d, i) => {
     const num = i + 1;
     const hasSup = sups.some((s) => Number.parseInt(s.text, 10) === num);
@@ -249,14 +272,16 @@ async function applyUpdates() {
     return;
   }
 
-  const newSection = buildNumberedSection(disclosures);
-  html = `${html.slice(0, bounds.start)}<div>\n${newSection}\n</div>${html.slice(bounds.end)}`;
-
+  // Build old heading number → new index map BEFORE rebuilding HTML
   const oldToNew = {};
   disclosures.forEach((d, i) => {
     if (d.headingNum) oldToNew[d.headingNum] = i + 1;
   });
 
+  const newSection = buildNumberedSection(disclosures);
+  html = `${html.slice(0, bounds.start)}<div>\n${newSection}\n</div>${html.slice(bounds.end)}`;
+
+  // Renumber all superscript anchors using the pre-built map
   html = html.replace(/<a href="#(\d+)"><sup>\d+<\/sup><\/a>/g, (match, oldNum) => {
     const n = Number.parseInt(oldNum, 10);
     const newNum = oldToNew[n];
