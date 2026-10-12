@@ -1,7 +1,7 @@
 /* eslint-disable import/no-unresolved */
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 
-const { context, token, actions } = await DA_SDK;
+const { context, token } = await DA_SDK;
 
 let rawHtml = '';
 let disclosures = [];
@@ -36,30 +36,19 @@ function parsePage(html) {
     });
   }
 
-  // Match anchored superscripts: <a href="#N"><sup>N</sup></a>
-  const supAnchoredRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
+  // Anchored superscripts: <a href="#N"><sup>N</sup></a>
+  const supRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
   // eslint-disable-next-line no-cond-assign
-  while ((m = supAnchoredRe.exec(html)) !== null) {
+  while ((m = supRe.exec(html)) !== null) {
     superscripts.push({ href: m[1], text: m[2], isSub: false });
   }
 
-  // Match bare superscripts not wrapped in an anchor: <sup>N</sup>
-  // Use a two-pass approach: collect all <sup> positions, exclude those already matched
-  const anchoredPositions = new Set();
-  const anchorScanRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
+  // Bare superscripts: <sup>N</sup> not wrapped in an anchor
+  // The regex matches either the full anchored pattern (group 1 = null) or a bare sup (group 1 set)
+  const bareRe = /<a href="[^"]*"><sup>\d+<\/sup><\/a>|<sup>(\d+)<\/sup>/g;
   // eslint-disable-next-line no-cond-assign
-  while ((m = anchorScanRe.exec(html)) !== null) {
-    for (let p = m.index; p < m.index + m[0].length; p += 1) {
-      anchoredPositions.add(p);
-    }
-  }
-
-  const bareSuperRe = /<sup>(\d+)<\/sup>/g;
-  // eslint-disable-next-line no-cond-assign
-  while ((m = bareSuperRe.exec(html)) !== null) {
-    if (!anchoredPositions.has(m.index)) {
-      superscripts.push({ href: null, text: m[1], isSub: false });
-    }
+  while ((m = bareRe.exec(html)) !== null) {
+    if (m[1]) superscripts.push({ href: null, text: m[1], isSub: false });
   }
 
   // Subscripts: <sub>N</sub>
@@ -148,7 +137,6 @@ function renderAudit() {
     issues.push({ type: 'warn', msg: 'No numbered disclosures section found on this page.' });
   }
 
-  // Check every superscript has a matching disclosure and correct href
   sups.forEach((s) => {
     const num = Number.parseInt(s.text, 10);
     if (Number.isNaN(num)) {
@@ -165,7 +153,7 @@ function renderAudit() {
     } else if (!s.href) {
       issues.push({
         type: 'error',
-        msg: `Superscript ${num} (${disc.path}) has no anchor link — wrap in <a href="${expected}">.`,
+        msg: `Superscript ${num} (${disc.path}) has no anchor — wrap in <a href="${expected}">.`,
       });
     } else if (s.href !== expected) {
       issues.push({
@@ -177,7 +165,6 @@ function renderAudit() {
     }
   });
 
-  // Check every disclosure has at least one superscript referencing it
   disclosures.forEach((d, i) => {
     const num = i + 1;
     const hasSup = sups.some((s) => Number.parseInt(s.text, 10) === num);
@@ -272,7 +259,6 @@ async function applyUpdates() {
     return;
   }
 
-  // Build old heading number → new index map BEFORE rebuilding HTML
   const oldToNew = {};
   disclosures.forEach((d, i) => {
     if (d.headingNum) oldToNew[d.headingNum] = i + 1;
@@ -281,7 +267,6 @@ async function applyUpdates() {
   const newSection = buildNumberedSection(disclosures);
   html = `${html.slice(0, bounds.start)}<div>\n${newSection}\n</div>${html.slice(bounds.end)}`;
 
-  // Renumber all superscript anchors using the pre-built map
   html = html.replace(/<a href="#(\d+)"><sup>\d+<\/sup><\/a>/g, (match, oldNum) => {
     const n = Number.parseInt(oldNum, 10);
     const newNum = oldToNew[n];
@@ -289,13 +274,24 @@ async function applyUpdates() {
     return `<a href="#${newNum}"><sup>${newNum}</sup></a>`;
   });
 
+  const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
+  const body = new FormData();
+  body.append('data', new Blob([html], { type: 'text/html' }));
+  let res;
   try {
-    await actions.setHTML(html);
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+    });
   } catch (e) {
-    setStatus(`Save failed: ${e.message}`, 'warn');
+    setStatus(`Network error: ${e.message}`, 'warn');
     return;
   }
-
+  if (!res.ok) {
+    setStatus(`Save failed (${res.status})`, 'warn');
+    return;
+  }
   rawHtml = html;
   parsePage(html);
   renderManage();
