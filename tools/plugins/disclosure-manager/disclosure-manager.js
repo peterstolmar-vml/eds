@@ -289,37 +289,21 @@ async function applyUpdates() {
     return `<a href="#${newNum}"><sup>${newNum}</sup></a>`;
   });
 
-const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
-const body = new FormData();
-body.append('data', new Blob([html], { type: 'text/html' }));
-let res;
-try {
-  res = await fetch(url, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` },
-    body,
-  });
-} catch (e) {
-  setStatus(`Network error: ${e.message}`, 'warn');
-  return;
-}
-
- /* const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
+  const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
+  const body = new FormData();
+  body.append('data', new Blob([html], { type: 'text/html' }));
   let res;
   try {
+    /* eslint-disable no-unused-vars */
     res = await fetch(url, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'text/html' },
-      body: html,
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body,
     });
   } catch (e) {
     setStatus(`Network error: ${e.message}`, 'warn');
     return;
   }
-  if (!res.ok) {
-    setStatus(`Save failed (${res.status})`, 'warn');
-    return;
-  } */
 
   rawHtml = html;
   parsePage(html);
