@@ -270,20 +270,13 @@ async function applyUpdates() {
     return `<a href="#${newNum}"><sup>${newNum}</sup></a>`;
   });
 
-  const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
-  const body = new FormData();
-  body.append('data', new Blob([html], { type: 'text/html' }));
-  let res;
   try {
-    res = await actions.daFetch(url, { method: 'PUT', body });
+    await actions.sendHTML(html);
   } catch (e) {
-    setStatus(`Network error: ${e.message}`, 'warn');
+    setStatus(`Failed: ${e.message}`, 'warn');
     return;
   }
-  if (!res.ok) {
-    setStatus(`Save failed (${res.status})`, 'warn');
-    return;
-  }
+
   rawHtml = html;
   parsePage(html);
   renderManage();
