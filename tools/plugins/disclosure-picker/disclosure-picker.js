@@ -60,23 +60,19 @@ async function insertDisclosure(path, btn) {
 }
 
 async function listDisclosures() {
-  const url = `https://content.da.live/${context.org}/${context.repo}${DISCLOSURES_FOLDER}/`;
+  const url = `https://content.da.live/${context.org}/${context.repo}${DISCLOSURES_FOLDER}`;
   try {
-    const res = await actions.daFetch(url);
+    const res = await actions.daFetch(url, {
+      headers: { Accept: 'application/json' },
+    });
     if (!res.ok) return [];
-    const raw = await res.json();
-    console.log('folder response:', JSON.stringify(raw).slice(0, 500));
-    const items = Array.isArray(raw) ? raw : (raw.data || raw.items || []);
+    const items = await res.json();
     return items
       .filter((item) => item.ext === 'html')
-      .map((item) => {
-        const name = item.name.replace(/\.html$/, '');
-        return {
-          name,
-          path: `${DISCLOSURES_FOLDER}/${name}`,
-          lastModified: item.lastModified,
-        };
-      })
+      .map((item) => ({
+        name: item.name,
+        path: `${DISCLOSURES_FOLDER}/${item.name}`,
+      }))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   } catch (e) {
     setStatus(`Error: ${e.message}`);
