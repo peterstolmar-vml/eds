@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disclosure Picker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: adobe-clean, sans-serif; font-size: 13px; background: #1e1e1e; color: #e0e0e0; }
+    #toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #2a2a2a; border-bottom: 1px solid #3a3a3a; }
+    #search { flex: 1; padding: 5px 8px; border-radius: 4px; border: 1px solid #444; background: #333; color: #e0e0e0; font-size: 13px; }
+    #search::placeholder { color: #888; }
+    #status { font-size: 11px; color: #888; padding: 4px 12px; }
+    #picker-list { overflow-y: auto; max-height: calc(100vh - 80px); }
+    .picker-item { padding: 8px 12px; border-bottom: 1px solid #2e2e2e; display: flex; flex-direction: column; gap: 3px; cursor: default; }
+    .picker-item:hover { background: #2a2a2a; }
+    .picker-item-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .picker-name { font-weight: 600; color: #ccc; font-size: 13px; flex: 1; }
+    .picker-excerpt { font-size: 11px; color: #888; line-height: 1.4; }
+    .insert-btn { padding: 3px 10px; font-size: 11px; border-radius: 3px; border: 1px solid #4a90d9; background: transparent; color: #4a90d9; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .insert-btn:hover { background: #4a90d9; color: #fff; }
+    .insert-btn:disabled { opacity: 0.5; cursor: default; }
+    .empty { padding: 16px 12px; color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <input id="search" type="search" placeholder="Search disclosures…" autocomplete="off">
+  </div>
+  <div id="status"></div>
+  <div id="picker-list"></div>
+  <script src="https://da.live/nx/utils/sdk.js" type="module"></script>
+  <script src="/tools/plugins/disclosure-picker/disclosure-picker.js" type="module"></script>
+</body>
+</html>

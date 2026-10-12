@@ -1,6 +1,8 @@
 /* eslint-disable import/no-unresolved */
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 
+const { context, token } = await DA_SDK;
+
 let rawHtml = '';
 let disclosures = [];
 let superscripts = [];
@@ -15,82 +17,35 @@ function parsePage(html) {
   disclosures = [];
   superscripts = [];
 
-  const numberedMatch = html.match(
-    /<p>disclosures<\/p><\/div><\/div><\/div>([\s\S]*?)<\/div><\/main>/,
-  );
-  const searchZone = numberedMatch ? numberedMatch[1] : '';
+  const hasNumbered = /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i
+    .test(html);
+  if (!hasNumbered) return;
 
-  const pathRe = /<p>([^<]*\/demo\/disclosures\/[^<]*)<\/p>/g;
+  const metaIdx = html.search(
+    /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i,
+  );
+  const zone = html.slice(metaIdx);
+
+  const pairRe = /<h3>(\d+)\.<\/h3>[\s\S]*?class="fragment"[\s\S]*?<p>([^<]+)<\/p>/g;
   let m;
   // eslint-disable-next-line no-cond-assign
-  while ((m = pathRe.exec(searchZone)) !== null) {
-    disclosures.push({ path: m[1].trim() });
+  while ((m = pairRe.exec(zone)) !== null) {
+    disclosures.push({
+      path: m[2].trim(),
+      headingNum: Number.parseInt(m[1], 10),
+    });
   }
 
-  const supRe = /<a href="(#disclosure-(\d+))"><sup>\d+<\/sup><\/a>/g;
+  const supRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = supRe.exec(html)) !== null) {
-    superscripts.push({ href: m[1], num: Number.parseInt(m[2], 10), isSub: false });
+    superscripts.push({ href: m[1], text: m[2], isSub: false });
   }
 
   const subRe = /<sub>(\d+)<\/sub>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = subRe.exec(html)) !== null) {
-    superscripts.push({ href: null, num: Number.parseInt(m[1], 10), isSub: true });
-  }
-}
-
-function makeSection(title, items, out) {
-  if (!items.length) return;
-  const sec = document.createElement('div');
-  sec.className = 'audit-section';
-  const h = document.createElement('h2');
-  h.textContent = title;
-  sec.appendChild(h);
-  items.forEach((item) => {
-    const el = document.createElement('div');
-    el.className = `audit-item ${item.type}`;
-    el.textContent = item.msg;
-    sec.appendChild(el);
-  });
-  out.appendChild(sec);
-}
-
-function renderAudit() {
-  const out = document.getElementById('audit-output');
-  out.textContent = '';
-  const issues = [];
-  const oks = [];
-
-  if (!disclosures.length) {
-    issues.push({ type: 'warn', msg: 'No numbered disclosures section found on this page.' });
-  }
-
-  superscripts.filter((s) => !s.isSub).forEach((s) => {
-    const disc = disclosures[s.num - 1];
-    if (!disc) {
-      issues.push({
-        type: 'error',
-        msg: `Superscript ${s.num} has no matching disclosure. Only ${disclosures.length} found.`,
-      });
-    } else if (s.href !== `#disclosure-${s.num}`) {
-      issues.push({
-        type: 'warn',
-        msg: `Superscript ${s.num} links to "${s.href}" but expected "#disclosure-${s.num}".`,
-      });
-    } else {
-      oks.push(`Superscript ${s.num} -> ${disc.path} OK`);
-    }
-  });
-
-  makeSection('Issues', issues, out);
-  makeSection('Passing', oks.map((msg) => ({ type: 'ok', msg })), out);
-
-  if (!issues.length && !oks.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'No superscripts found on this page.';
-    out.appendChild(empty);
+    superscripts.push({ href: null, text: m[1], isSub: true });
   }
 }
 
@@ -101,7 +56,7 @@ function renderManage() {
   if (!disclosures.length) {
     const empty = document.createElement('div');
     empty.className = 'empty';
-    empty.textContent = 'No numbered disclosure fragments found. Add a section-metadata block with disclosures / numbered.';
+    empty.textContent = 'No numbered disclosures found (needs section-metadata disclosures/numbered).';
     list.appendChild(empty);
     return;
   }
@@ -115,15 +70,15 @@ function renderManage() {
     const item = document.createElement('div');
     item.className = 'disclosure-item';
     item.draggable = true;
-    item.dataset.index = String(i);
+    item.dataset.index = i;
 
     const handle = document.createElement('div');
     handle.className = 'drag-handle';
-    handle.textContent = '⠿';
+    handle.textContent = '\u283f';
 
     const num = document.createElement('div');
     num.className = 'disc-num';
-    num.textContent = String(i + 1);
+    num.textContent = i + 1;
 
     const body = document.createElement('div');
     body.style.flex = '1';
@@ -161,30 +116,155 @@ function renderManage() {
   });
 }
 
-async function applyUpdates(context, token) {
+function renderAudit() {
+  const out = document.getElementById('audit-output');
+  out.textContent = '';
+  const issues = [];
+  const oks = [];
+  const sups = superscripts.filter((s) => !s.isSub);
+
+  if (!disclosures.length) {
+    issues.push({ type: 'warn', msg: 'No numbered disclosures section found on this page.' });
+  }
+
+  sups.forEach((s) => {
+    const num = Number.parseInt(s.text, 10);
+    if (Number.isNaN(num)) {
+      issues.push({ type: 'warn', msg: `Superscript "${s.text}" is not a number.` });
+      return;
+    }
+    const disc = disclosures[num - 1];
+    const expected = `#${num}`;
+    if (!disc) {
+      issues.push({
+        type: 'error',
+        msg: `Superscript ${num} has no matching disclosure (only ${disclosures.length} found).`,
+      });
+    } else if (!s.href) {
+      issues.push({
+        type: 'warn',
+        msg: `Superscript ${num} (${disc.path}) has no anchor link.`,
+      });
+    } else if (s.href !== expected) {
+      issues.push({
+        type: 'warn',
+        msg: `Superscript ${num} links to "${s.href}" but expected "${expected}".`,
+      });
+    } else {
+      oks.push(`Superscript ${num} → ${disc.path} ✓`);
+    }
+  });
+
+  disclosures.forEach((d, i) => {
+    const num = i + 1;
+    const hasSup = sups.some((s) => Number.parseInt(s.text, 10) === num);
+    if (!hasSup) {
+      issues.push({
+        type: 'warn',
+        msg: `Disclosure ${num} (${d.path}) has no superscript referencing it.`,
+      });
+    }
+  });
+
+  function makeSection(title, items) {
+    if (!items.length) return;
+    const sec = document.createElement('div');
+    sec.className = 'audit-section';
+    const h = document.createElement('h2');
+    h.textContent = title;
+    sec.appendChild(h);
+    items.forEach((item) => {
+      const el = document.createElement('div');
+      el.className = `audit-item ${item.type}`;
+      el.textContent = item.msg;
+      sec.appendChild(el);
+    });
+    out.appendChild(sec);
+  }
+
+  makeSection('Issues', issues);
+  makeSection('Passing', oks.map((msg) => ({ type: 'ok', msg })));
+
+  if (!issues.length && !oks.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No superscripts found on this page.';
+    out.appendChild(empty);
+  }
+}
+
+function buildNumberedSection(list) {
+  const metaBlock = [
+    '<div class="section-metadata">',
+    '  <div><div><p>disclosures</p></div><div><p>numbered</p></div></div>',
+    '</div>',
+  ].join('\n');
+
+  const pairs = list.map((d, i) => [
+    `<h3>${i + 1}.</h3>`,
+    '<div class="fragment">',
+    '  <div><div>',
+    `    <p>${d.path}</p>`,
+    '  </div></div>',
+    '</div>',
+  ].join('\n')).join('\n');
+
+  return `${metaBlock}\n${pairs}`;
+}
+
+function findSectionBounds(html) {
+  const metaIdx = html.search(
+    /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i,
+  );
+  if (metaIdx === -1) return null;
+
+  const before = html.slice(0, metaIdx);
+  const sectionStart = before.lastIndexOf('<div>');
+  if (sectionStart === -1) return null;
+
+  let depth = 0;
+  let i = sectionStart;
+  while (i < html.length) {
+    if (html.slice(i, i + 4) === '<div') {
+      depth += 1;
+      i = html.indexOf('>', i) + 1;
+    } else if (html.slice(i, i + 6) === '</div>') {
+      depth -= 1;
+      i += 6;
+      if (depth === 0) return { start: sectionStart, end: i };
+    } else {
+      i += 1;
+    }
+  }
+  return null;
+}
+
+async function applyUpdates() {
   setStatus('Applying...', 'loading');
-  const { org, repo, path } = context;
   let html = rawHtml;
 
-  const numberedSectionRe = /(disclosures<\/div><\/div><\/div>)([\s\S]*?)((?:<div class="section-metadata"|<\/main>))/;
-  const newFrags = disclosures
-    .map((d, i) => `<div id="disclosure-${i + 1}" class="fragment"><div><div><p>${d.path}</p></div></div></div>`)
-    .join('\n');
-  html = html.replace(numberedSectionRe, (match, before, middle, after) => `${before}\n${newFrags}\n${after}`);
+  const bounds = findSectionBounds(html);
+  if (!bounds) {
+    setStatus('Could not locate disclosures section.', 'warn');
+    return;
+  }
 
-  const pathToNewNum = {};
+  const newSection = buildNumberedSection(disclosures);
+  html = `${html.slice(0, bounds.start)}<div>\n${newSection}\n</div>${html.slice(bounds.end)}`;
+
+  const oldToNew = {};
   disclosures.forEach((d, i) => {
-    const pm = d.path.match(/disclosure-(\d+)$/);
-    if (pm) pathToNewNum[Number.parseInt(pm[1], 10)] = i + 1;
+    if (d.headingNum) oldToNew[d.headingNum] = i + 1;
   });
 
-  html = html.replace(/<a href="#disclosure-(\d+)"><sup>\d+<\/sup><\/a>/g, (match, oldNum) => {
-    const newNum = pathToNewNum[Number.parseInt(oldNum, 10)];
+  html = html.replace(/<a href="#(\d+)"><sup>\d+<\/sup><\/a>/g, (match, oldNum) => {
+    const n = Number.parseInt(oldNum, 10);
+    const newNum = oldToNew[n];
     if (newNum === undefined) return match;
-    return `<a href="#disclosure-${newNum}"><sup>${newNum}</sup></a>`;
+    return `<a href="#${newNum}"><sup>${newNum}</sup></a>`;
   });
 
-  const url = `https://content.da.live/${org}/${repo}${path}`;
+  const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
   let res;
   try {
     res = await fetch(url, {
@@ -207,10 +287,9 @@ async function applyUpdates(context, token) {
   setStatus('Done! Disclosures reordered and superscripts renumbered.', 'ok');
 }
 
-async function fetchPage(context, token) {
+async function fetchPage() {
   setStatus('Loading page...', 'loading');
-  const { org, repo, path } = context;
-  const url = `https://content.da.live/${org}/${repo}${path}`;
+  const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
   let res;
   try {
     res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -231,21 +310,17 @@ async function fetchPage(context, token) {
   setStatus(`Found ${n} disclosure(s), ${s} superscript(s)`, 'ok');
 }
 
-(async () => {
-  const { context, token } = await DA_SDK;
-
-  document.querySelectorAll('.tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-      tab.classList.add('active');
-      const isManage = tab.dataset.tab === 'manage';
-      document.getElementById('panel-manage').style.display = isManage ? '' : 'none';
-      document.getElementById('panel-audit').style.display = isManage ? 'none' : '';
-    });
+document.querySelectorAll('.tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    const isManage = tab.dataset.tab === 'manage';
+    document.getElementById('panel-manage').style.display = isManage ? '' : 'none';
+    document.getElementById('panel-audit').style.display = isManage ? 'none' : '';
   });
+});
 
-  document.getElementById('btn-refresh').addEventListener('click', () => fetchPage(context, token));
-  document.getElementById('btn-apply').addEventListener('click', () => applyUpdates(context, token));
+document.getElementById('btn-refresh').addEventListener('click', fetchPage);
+document.getElementById('btn-apply').addEventListener('click', applyUpdates);
 
-  fetchPage(context, token);
-})();
+fetchPage();
