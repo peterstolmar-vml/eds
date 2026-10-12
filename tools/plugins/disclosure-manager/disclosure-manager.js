@@ -1,7 +1,7 @@
 /* eslint-disable import/no-unresolved */
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 
-const { context, token } = await DA_SDK;
+const { context, actions } = await DA_SDK;
 
 let rawHtml = '';
 let disclosures = [];
@@ -36,22 +36,18 @@ function parsePage(html) {
     });
   }
 
-  // Anchored superscripts: <a href="#N"><sup>N</sup></a>
   const supRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = supRe.exec(html)) !== null) {
     superscripts.push({ href: m[1], text: m[2], isSub: false });
   }
 
-  // Bare superscripts: <sup>N</sup> not wrapped in an anchor
-  // The regex matches either the full anchored pattern (group 1 = null) or a bare sup (group 1 set)
   const bareRe = /<a href="[^"]*"><sup>\d+<\/sup><\/a>|<sup>(\d+)<\/sup>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = bareRe.exec(html)) !== null) {
     if (m[1]) superscripts.push({ href: null, text: m[1], isSub: false });
   }
 
-  // Subscripts: <sub>N</sub>
   const subRe = /<sub>(\d+)<\/sub>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = subRe.exec(html)) !== null) {
@@ -279,11 +275,7 @@ async function applyUpdates() {
   body.append('data', new Blob([html], { type: 'text/html' }));
   let res;
   try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body,
-    });
+    res = await actions.daFetch(url, { method: 'PUT', body });
   } catch (e) {
     setStatus(`Network error: ${e.message}`, 'warn');
     return;
@@ -304,7 +296,7 @@ async function fetchPage() {
   const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
   let res;
   try {
-    res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    res = await actions.daFetch(url);
   } catch (e) {
     setStatus(`Network error: ${e.message}`, 'warn');
     return;
