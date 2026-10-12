@@ -7,7 +7,7 @@ const DISCLOSURES_FOLDER = '/demo/disclosures';
 const previewCache = {};
 
 async function listDisclosures() {
-  const url = `https://content.da.live/${context.org}/${context.repo}${DISCLOSURES_FOLDER}`;
+  const url = `https://content.da.live/${context.org}/${context.repo}${DISCLOSURES_FOLDER}/`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) return [];
   const items = await res.json();
