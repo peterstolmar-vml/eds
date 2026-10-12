@@ -275,7 +275,7 @@ async function applyUpdates() {
   body.append('data', new Blob([html], { type: 'text/html' }));
   let res;
   try {
-    res = await actions.daFetch(url, { method: 'PUT', body });
+    res = await actions.daFetch(url, { method: 'POST', body });
   } catch (e) {
     setStatus(`Network error: ${e.message}`, 'warn');
     return;
