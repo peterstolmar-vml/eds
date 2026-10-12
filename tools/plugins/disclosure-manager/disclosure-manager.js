@@ -1,7 +1,7 @@
 /* eslint-disable import/no-unresolved */
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 
-const { context, token } = await DA_SDK;
+const { context, token, actions } = await DA_SDK;
 
 let rawHtml = '';
 let disclosures = [];
@@ -289,19 +289,10 @@ async function applyUpdates() {
     return `<a href="#${newNum}"><sup>${newNum}</sup></a>`;
   });
 
-  const url = `https://content.da.live/${context.org}/${context.repo}${context.path}`;
-  const body = new FormData();
-  body.append('data', new Blob([html], { type: 'text/html' }));
-  let res;
   try {
-    /* eslint-disable no-unused-vars */
-    res = await fetch(url, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-      body,
-    });
+    await actions.setHTML(html);
   } catch (e) {
-    setStatus(`Network error: ${e.message}`, 'warn');
+    setStatus(`Save failed: ${e.message}`, 'warn');
     return;
   }
 
