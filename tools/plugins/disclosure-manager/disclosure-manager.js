@@ -36,39 +36,34 @@ async function fetchPage() {
   setStatus(`Found ${n} disclosure(s), ${s} superscript(s)`, 'ok');
 }
 
-// Slugify heading text the same way EDS does
-function slugify(text) {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
 function parsePage(html) {
   disclosures = [];
   superscripts = [];
 
-  // Find the numbered disclosures section:
-  // section-metadata with disclosures/numbered key, then interleaved <h3>N.</h3> + fragment blocks
-  // Strategy: find the section-metadata block, then scan forward for h3+fragment pairs
-  const sectionMetaRe = /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i;
-  if (!sectionMetaRe.test(html)) {
-    return;
-  }
+  // Confirm the numbered disclosures section exists
+  const hasNumbered = /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i
+    .test(html);
+  if (!hasNumbered) return;
 
-  // Extract from the section-metadata match onward to end of that section
-  const metaIdx = html.search(sectionMetaRe);
-  const sectionHtml = html.slice(metaIdx);
+  // Find the section-metadata block and scan forward from there
+  const metaIdx = html.search(
+    /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i,
+  );
+  const zone = html.slice(metaIdx);
 
-  // Match h3 + fragment pairs: <h3>N.</h3> ... <p>/path/to/disclosure</p>
-  // eslint-disable-next-line no-cond-assign
+  // Match <h3>N.</h3> ... fragment path pairs
   const pairRe = /<h3>(\d+)\.<\/h3>[\s\S]*?class="fragment"[\s\S]*?<p>([^<]+)<\/p>/g;
   let m;
   // eslint-disable-next-line no-cond-assign
-  while ((m = pairRe.exec(sectionHtml)) !== null) {
-    const path = m[2].trim();
-    disclosures.push({ path, headingNum: Number.parseInt(m[1], 10) });
+  while ((m = pairRe.exec(zone)) !== null) {
+    disclosures.push({
+      path: m[2].trim(),
+      headingNum: Number.parseInt(m[1], 10),
+    });
   }
 
   // Superscripts: <a href="#N"><sup>N</sup></a>
-  const supRe = /<a href="(#[^"]+)"><sup>(\d+)<\/sup><\/a>/g;
+  const supRe = /<a href="(#\d+)"><sup>(\d+)<\/sup><\/a>/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = supRe.exec(html)) !== null) {
     superscripts.push({ href: m[1], text: m[2], isSub: false });
@@ -89,7 +84,7 @@ function renderManage() {
   if (!disclosures.length) {
     const empty = document.createElement('div');
     empty.className = 'empty';
-    empty.textContent = 'No numbered disclosure fragments found (section-metadata disclosures/numbered).';
+    empty.textContent = 'No numbered disclosures found (needs section-metadata disclosures/numbered).';
     list.appendChild(empty);
     return;
   }
@@ -132,7 +127,10 @@ function renderManage() {
       e.dataTransfer.effectAllowed = 'move';
     });
     item.addEventListener('dragend', () => item.classList.remove('dragging'));
-    item.addEventListener('dragover', (e) => { e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      item.classList.add('drag-over');
+    });
     item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
     item.addEventListener('drop', (e) => {
       e.preventDefault();
@@ -151,7 +149,6 @@ function renderAudit() {
   out.textContent = '';
   const issues = [];
   const oks = [];
-
   const sups = superscripts.filter((s) => !s.isSub);
 
   if (!disclosures.length) {
@@ -165,34 +162,36 @@ function renderAudit() {
       return;
     }
     const disc = disclosures[num - 1];
-    const expectedHref = `#${num}`;
+    const expected = `#${num}`;
     if (!disc) {
       issues.push({
         type: 'error',
-        msg: `Superscript ${num} has no matching disclosure. Only ${disclosures.length} found.`,
+        msg: `Superscript ${num} has no matching disclosure (only ${disclosures.length} found).`,
       });
     } else if (!s.href) {
       issues.push({ type: 'warn', msg: `Superscript ${num} (${disc.path}) has no anchor link.` });
-    } else if (s.href !== expectedHref) {
+    } else if (s.href !== expected) {
       issues.push({
         type: 'warn',
-        msg: `Superscript ${num} links to "${s.href}" but expected "${expectedHref}".`,
+        msg: `Superscript ${num} links to "${s.href}" but expected "${expected}".`,
       });
     } else {
       oks.push(`Superscript ${num} → ${disc.path} ✓`);
     }
   });
 
-  // Check for disclosures with no matching superscript
   disclosures.forEach((d, i) => {
     const num = i + 1;
     const hasSup = sups.some((s) => Number.parseInt(s.text, 10) === num);
     if (!hasSup) {
-      issues.push({ type: 'warn', msg: `Disclosure ${num} (${d.path}) has no superscript referencing it.` });
+      issues.push({
+        type: 'warn',
+        msg: `Disclosure ${num} (${d.path}) has no superscript referencing it.`,
+      });
     }
   });
 
-  function makeSection(title, items, cls) {
+  function makeSection(title, items) {
     if (!items.length) return;
     const sec = document.createElement('div');
     sec.className = 'audit-section';
@@ -201,8 +200,8 @@ function renderAudit() {
     sec.appendChild(h);
     items.forEach((item) => {
       const el = document.createElement('div');
-      el.className = `audit-item ${item.type || cls}`;
-      el.textContent = item.msg || item;
+      el.className = `audit-item ${item.type}`;
+      el.textContent = item.msg;
       sec.appendChild(el);
     });
     out.appendChild(sec);
@@ -219,15 +218,14 @@ function renderAudit() {
   }
 }
 
-function buildNumberedSection(disclosureList) {
-  // Rebuild the numbered section: section-metadata block + h3+fragment pairs
+function buildNumberedSection(list) {
   const metaBlock = [
     '<div class="section-metadata">',
     '  <div><div><p>disclosures</p></div><div><p>numbered</p></div></div>',
     '</div>',
   ].join('\n');
 
-  const pairs = disclosureList.map((d, i) => [
+  const pairs = list.map((d, i) => [
     `<h3>${i + 1}.</h3>`,
     '<div class="fragment">',
     '  <div><div>',
@@ -239,90 +237,57 @@ function buildNumberedSection(disclosureList) {
   return `${metaBlock}\n${pairs}`;
 }
 
+function findSectionBounds(html) {
+  // Walk back from the section-metadata match to find the opening <div> of the section
+  const metaIdx = html.search(
+    /class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>/i,
+  );
+  if (metaIdx === -1) return null;
+
+  const before = html.slice(0, metaIdx);
+  const sectionStart = before.lastIndexOf('<div>');
+  if (sectionStart === -1) return null;
+
+  // Walk forward counting div depth to find the matching closing </div>
+  let depth = 0;
+  let i = sectionStart;
+  while (i < html.length) {
+    if (html.slice(i, i + 4) === '<div') {
+      depth += 1;
+      i = html.indexOf('>', i) + 1;
+    } else if (html.slice(i, i + 6) === '</div>') {
+      depth -= 1;
+      i += 6;
+      if (depth === 0) return { start: sectionStart, end: i };
+    } else {
+      i += 1;
+    }
+  }
+  return null;
+}
+
 async function applyUpdates() {
   setStatus('Applying...', 'loading');
   let html = rawHtml;
 
-  // Find and replace the entire numbered section block in the HTML
-  // The section starts at section-metadata disclosures/numbered and ends before the next </div> that
-  // closes the top-level section div — we match from section-metadata through all h3+fragment pairs
-  const sectionRe = /(class="section-metadata"[\s\S]*?<p>disclosures<\/p>[\s\S]*?<p>numbered<\/p>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>)([\s\S]*?)(<\/div>\s*(?=<div>|<\/main>))/i;
-
-  // Simpler targeted approach: replace from first <h3>1.</h3> through last fragment </div></div></div>
-  // by rebuilding the whole section between section-metadata and end of last fragment pair
-  const rebuildRe = /(class="section-metadata"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>)([\s\S]*?)(<\/div>\s*(?:<div class="metadata"|<\/main>))/i;
+  const bounds = findSectionBounds(html);
+  if (!bounds) {
+    setStatus('Could not locate disclosures section.', 'warn');
+    return;
+  }
 
   const newSection = buildNumberedSection(disclosures);
+  html = `${html.slice(0, bounds.start)}<div>\n${newSection}\n</div>${html.slice(bounds.end)}`;
 
-  // Replace section-metadata block + everything after it up to next top-level section
-  // Strategy: locate the section-metadata, then replace from there through the last fragment
-  const smStart = html.search(/class="section-metadata"[\s\S]*?<p>disclosures<\/p>/i);
-  if (smStart === -1) {
-    setStatus('Could not locate disclosures section to update.', 'warn');
-    return;
-  }
-
-  // Find the enclosing <div> that contains section-metadata (walk back to find opening <div>)
-  const beforeSm = html.slice(0, smStart);
-  const lastDivOpen = beforeSm.lastIndexOf('<div>');
-  if (lastDivOpen === -1) {
-    setStatus('Could not locate section container.', 'warn');
-    return;
-  }
-
-  // Find the closing </div> of that section — it's the </div> matching the <div> at lastDivOpen
-  // We count nesting from lastDivOpen forward
-  let depth = 0;
-  let pos = lastDivOpen;
-  const openRe = /<div[^>]*>/g;
-  const closeRe = /<\/div>/g;
-  openRe.lastIndex = lastDivOpen;
-  closeRe.lastIndex = lastDivOpen;
-  let sectionEnd = -1;
-
-  // Walk character by character using alternating regex is complex; use a linear scan instead
-  let scanPos = lastDivOpen;
-  while (scanPos < html.length) {
-    if (html.slice(scanPos, scanPos + 4) === '<div') {
-      depth += 1;
-      scanPos = html.indexOf('>', scanPos) + 1;
-    } else if (html.slice(scanPos, scanPos + 6) === '</div>') {
-      depth -= 1;
-      scanPos += 6;
-      if (depth === 0) {
-        sectionEnd = scanPos;
-        break;
-      }
-    } else {
-      scanPos += 1;
-    }
-  }
-
-  if (sectionEnd === -1) {
-    setStatus('Could not find end of disclosures section.', 'warn');
-    return;
-  }
-
-  html = `${html.slice(0, lastDivOpen)}<div>\n${newSection}\n</div>${html.slice(sectionEnd)}`;
-
-  // Renumber superscript anchors: <a href="#OLD"><sup>OLD</sup></a>
-  // Build old-path → new-number map
-  const pathToNewNum = {};
+  // Build old heading number → new number map for renumbering superscript anchors
+  const oldToNew = {};
   disclosures.forEach((d, i) => {
-    pathToNewNum[d.path] = i + 1;
+    if (d.headingNum) oldToNew[d.headingNum] = i + 1;
   });
 
-  // We need to renumber by old position. Store original positions before reorder.
-  // The original heading numbers are in d.headingNum. After reorder, new number = index+1.
-  const oldNumToNew = {};
-  disclosures.forEach((d, i) => {
-    if (d.headingNum) oldNumToNew[d.headingNum] = i + 1;
-  });
-
-  // Replace <a href="#N"><sup>N</sup></a>
   html = html.replace(/<a href="#(\d+)"><sup>\d+<\/sup><\/a>/g, (match, oldNum) => {
     const n = Number.parseInt(oldNum, 10);
-    const newNum = oldNumToNew[n];
+    const newNum = oldToNew[n];
     if (newNum === undefined) return match;
     return `<a href="#${newNum}"><sup>${newNum}</sup></a>`;
   });
@@ -354,8 +319,9 @@ document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
     tab.classList.add('active');
-    document.getElementById('panel-manage').style.display = tab.dataset.tab === 'manage' ? '' : 'none';
-    document.getElementById('panel-audit').style.display = tab.dataset.tab === 'audit' ? '' : 'none';
+    const isManage = tab.dataset.tab === 'manage';
+    document.getElementById('panel-manage').style.display = isManage ? '' : 'none';
+    document.getElementById('panel-audit').style.display = isManage ? 'none' : '';
   });
 });
 
