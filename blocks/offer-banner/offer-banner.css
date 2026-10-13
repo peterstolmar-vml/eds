@@ -1,0 +1,64 @@
+.offer-banner > div {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.offer-banner.image-right > div {
+  grid-template-columns: 1fr 2fr;
+  direction: rtl;
+}
+
+.offer-banner.image-right > div > div {
+  direction: ltr;
+}
+
+.offer-banner > div > div:first-child img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 8px;
+}
+
+.offer-banner > div > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* CTA Button */
+.offer-banner a {
+  display: inline-block;
+  padding: 0.75rem 1.75rem;
+  background: var(--color-brand, #0265dc);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.offer-banner a:hover {
+  background: var(--color-brand-dark, #0054b3);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.offer-banner a:active {
+  transform: scale(0.97);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .offer-banner > div {
+    grid-template-columns: 1fr;
+  }
+
+  .offer-banner.image-right > div {
+    grid-template-columns: 1fr;
+    direction: ltr;
+  }
+}
