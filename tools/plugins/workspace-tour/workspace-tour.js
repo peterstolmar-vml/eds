@@ -768,7 +768,7 @@ function createController(tours) {
     visitedSteps.add(0);
     launcher.style.display = 'none';
     tourPanel.classList.add('visible');
-    renderStep();
+    renderStep(); // eslint-disable no-use-before-define
     tpContent.focus();
   }
 
