@@ -750,11 +750,11 @@ function createController(tours) {
         card.querySelector('.tour-badge').textContent = 'Skipped';
         card.querySelector('.tour-badge').className = 'tour-badge done';
       }
-      card.addEventListener('click', () => startTour(tour));
+      card.addEventListener('click', () => startTour(tour)); // eslint-disable-line no-use-before-define
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          startTour(tour);
+          startTour(tour); // eslint-disable-line no-use-before-define
         }
       });
       tourList.appendChild(card);
@@ -768,7 +768,7 @@ function createController(tours) {
     visitedSteps.add(0);
     launcher.style.display = 'none';
     tourPanel.classList.add('visible');
-    renderStep(); // eslint-disable no-use-before-define
+    renderStep(); // eslint-disable-line no-use-before-define
     tpContent.focus();
   }
 
