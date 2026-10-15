@@ -27,5 +27,9 @@
     "eslint-plugin-import": "2.32.0",
     "stylelint": "17.16.0",
     "stylelint-config-standard": "40.0.0"
+  },
+  "dependencies": {
+    "@emnapi/core": "1.11.3",
+    "@emnapi/runtime": "1.11.3"
   }
 }
