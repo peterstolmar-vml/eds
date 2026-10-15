@@ -12,6 +12,24 @@ import {
   buildBlock,
 } from './aem.js';
 
+import {
+  runExperimentation,
+  runExperimentationLazy,
+} from './experiment-loader.js';
+
+const experimentationConfig = {
+
+  // prodHost: 'www.mysite.com',
+  isProd: () => !window.location.hostname.endsWith('hlx.page')
+    && !window.location.hostname.endsWith('aem.page')
+    && window.location.hostname !== ('localhost'),
+  audiences: {
+    mobile: () => window.innerWidth < 600,
+    desktop: () => window.innerWidth >= 600,
+    // define your custom audiences here as needed
+  },
+};
+
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
   const innerTT = window.trustedTypes.createPolicy('tt-inner', {
     createHTML: (s) => s, // avoid stack overflow
@@ -161,6 +179,7 @@ export function decorateMain(main) {
  */
 async function loadEager(doc) {
   document.documentElement.lang = 'en';
+  await runExperimentation(doc, experimentationConfig);
   decorateTemplateAndTheme();
   const main = doc.querySelector('main');
   if (main) {
@@ -188,6 +207,8 @@ async function loadLazy(doc) {
 
   const main = doc.querySelector('main');
   await loadSections(main);
+
+  await runExperimentationLazy(doc, experimentationConfig);
 
   const { hash } = window.location;
   const element = hash ? doc.getElementById(hash.substring(1)) : false;
