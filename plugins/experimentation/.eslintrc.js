@@ -18,4 +18,10 @@ module.exports = {
       js: 'always',
     }],
   },
+  settings: {
+    'import/resolver': {
+      typescript: true,
+      node: true,
+    },
+  },
 };
