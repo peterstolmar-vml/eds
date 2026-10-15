@@ -79,16 +79,16 @@ function buildPageEditorTour(hasBlocks, hasTemplates) {
       Look for the chat bubble icon at the top left of the editor chrome — click it
       to open the chat panel.</p>
       ${uiDiagram([
-        '┌─────────────────────────────────────────┐',
-        '│ [💬] DA Logo  │  Page title  │  ···     │  ← top bar',
-        '├──┬──────────────────────────────────────┤',
-        '│  │                                       │',
-        '│  │   ← Chat icon (top left of sidebar)  │',
-        '│  │                                       │',
-        '│  │      page canvas here                 │',
-        '│  │                                       │',
-        '└──┴──────────────────────────────────────┘',
-      ])}
+    '┌─────────────────────────────────────────┐',
+    '│ [💬] DA Logo  │  Page title  │  ···     │  ← top bar',
+    '├──┬──────────────────────────────────────┤',
+    '│  │                                       │',
+    '│  │   ← Chat icon (top left of sidebar)  │',
+    '│  │                                       │',
+    '│  │      page canvas here                 │',
+    '│  │                                       │',
+    '└──┴──────────────────────────────────────┘',
+  ])}
       <p>Once open, the chat pane slides in from the left. You type prompts at the bottom
       of that pane. The AI can read your page, make edits, run skills, call MCP tools,
       and more.</p>
@@ -105,20 +105,20 @@ function buildPageEditorTour(hasBlocks, hasTemplates) {
       <p>Inside the open chat pane, look for a <strong>+ button at the bottom left</strong>
       of the input area. This opens a submenu with three things:</p>
       ${uiDiagram([
-        '┌──────────────────────────────────────┐',
-        '│  Chat pane                           │',
-        '│                                      │',
-        '│  [message history...]                │',
-        '│                                      │',
-        '│  ┌──────────────────────────────┐    │',
-        '│  │ type a message...            │    │',
-        '│  └──────────────────────────────┘    │',
-        '│  [+]  ← tap this                     │',
-        '│   ├─ 📎 Upload file                  │',
-        '│   ├─ 📋 Stored prompts               │',
-        '│   └─ 🧠 Skills                       │',
-        '└──────────────────────────────────────┘',
-      ])}
+    '┌──────────────────────────────────────┐',
+    '│  Chat pane                           │',
+    '│                                      │',
+    '│  [message history...]                │',
+    '│                                      │',
+    '│  ┌──────────────────────────────┐    │',
+    '│  │ type a message...            │    │',
+    '│  └──────────────────────────────┘    │',
+    '│  [+]  ← tap this                     │',
+    '│   ├─ 📎 Upload file                  │',
+    '│   ├─ 📋 Stored prompts               │',
+    '│   └─ 🧠 Skills                       │',
+    '└──────────────────────────────────────┘',
+  ])}
       <ul>
         <li><strong>Upload file</strong> — attach a file to your message. Supports images,
         PDFs, and a small set of document types. <em>Not</em> for uploading DA pages or
@@ -226,18 +226,18 @@ function buildPageEditorTour(hasBlocks, hasTemplates) {
       <p>The page canvas has two modes. Switch using the <strong>right-side dropdown</strong>
       at the top right of the editor (it defaults to <strong>Outline</strong>):</p>
       ${uiDiagram([
-        '┌──────────────────────────────────────────────┐',
-        '│  Page title                    [Outline ▼]   │  ← dropdown top right',
-        '├──────────────────────────────────────────────┤',
-        '│                                               │',
-        '│   page canvas                                 │',
-        '│                                               │',
-        '└──────────────────────────────────────────────┘',
-        '  Dropdown options:',
-        '  • Outline   ← structural tree view (default)',
-        '  • WYSIWYG   ← visual rich-text editing',
-        '  • + any Extensions your team has added',
-      ])}
+    '┌──────────────────────────────────────────────┐',
+    '│  Page title                    [Outline ▼]   │  ← dropdown top right',
+    '├──────────────────────────────────────────────┤',
+    '│                                               │',
+    '│   page canvas                                 │',
+    '│                                               │',
+    '└──────────────────────────────────────────────┘',
+    '  Dropdown options:',
+    '  • Outline   ← structural tree view (default)',
+    '  • WYSIWYG   ← visual rich-text editing',
+    '  • + any Extensions your team has added',
+  ])}
       <ul>
         <li><strong>WYSIWYG:</strong> Visual rich-text editing. Drag content, format text,
         insert images. What you see roughly matches the live page.</li>
@@ -420,12 +420,12 @@ function buildPageEditorTour(hasBlocks, hasTemplates) {
       <p>To embed a fragment, add a <strong>Fragment block</strong> containing the path
       to the fragment page (no domain, no .html extension):</p>
       ${uiDiagram([
-        '┌──────────────────────────────────┐',
-        '│ Fragment                         │  ← block name cell',
-        '├──────────────────────────────────┤',
-        '│ /demo/disclosures/disclosure-1   │  ← path to the fragment page',
-        '└──────────────────────────────────┘',
-      ])}
+    '┌──────────────────────────────────┐',
+    '│ Fragment                         │  ← block name cell',
+    '├──────────────────────────────────┤',
+    '│ /demo/disclosures/disclosure-1   │  ← path to the fragment page',
+    '└──────────────────────────────────┘',
+  ])}
       <p>In the editor the block just shows the path. On preview and live, the full
       fragment content renders in its place.</p>
       <div class="warn-box">Fragment pages must be published independently before they
@@ -463,14 +463,14 @@ function buildPageEditorTour(hasBlocks, hasTemplates) {
         at <code>/path.json</code> — ready for any front-end to consume</li>
       </ul>
       ${uiDiagram([
-        '  Schema (.da/forms/schemas/product.html)',
-        '       |',
-        '       v',
-        '  Form editor (da.live/form#/org/repo/products/p1)',
-        '       |',
-        '       v',
-        '  Published JSON (main--site--org.aem.live/products/p1.json)',
-      ])}
+    '  Schema (.da/forms/schemas/product.html)',
+    '       |',
+    '       v',
+    '  Form editor (da.live/form#/org/repo/products/p1)',
+    '       |',
+    '       v',
+    '  Published JSON (main--site--org.aem.live/products/p1.json)',
+  ])}
       <details class="advanced-toggle">
         <summary>&#9733; Power Author</summary>
         <div class="adv-body">
@@ -497,15 +497,15 @@ function buildPageEditorTour(hasBlocks, hasTemplates) {
       you Preview then Publish. There are two ways to do this:</p>
       <p><strong>Option A — Send button (in the editor):</strong></p>
       ${uiDiagram([
-        '┌──────────────────────────────────────────┐',
-        '│  Page title                   [Send ▼]   │  ← top right of editor',
-        '│                                           │',
-        '│  Send dropdown:                           │',
-        '│    Preview                                │',
-        '│    Publish                                │',
-        '│    (Unpublish)                            │',
-        '└──────────────────────────────────────────┘',
-      ])}
+    '┌──────────────────────────────────────────┐',
+    '│  Page title                   [Send ▼]   │  ← top right of editor',
+    '│                                           │',
+    '│  Send dropdown:                           │',
+    '│    Preview                                │',
+    '│    Publish                                │',
+    '│    (Unpublish)                            │',
+    '└──────────────────────────────────────────┘',
+  ])}
       <p><strong>Option B — Sidekick browser extension:</strong> Adds Preview/Publish
       buttons when you're viewing your <code>.aem.page</code> or <code>.aem.live</code>
       URL in the browser. Required for auth-gated pages and some advanced operations.</p>
@@ -541,31 +541,31 @@ function appsAndExtensionsStep() {
       <p><strong>Apps</strong> — accessed via the grid icon in the top-right of the
       editor chrome:</p>
       ${uiDiagram([
-        '┌──────────────────────────────────────────┐',
-        '│  [grid ⊞]  ← click this for Apps        │',
-        '├──────────────────────────────────────────┤',
-        '│  Apps panel:                             │',
-        '│    Translation                           │',
-        '│    User Admin                            │',
-        '│    (+ any custom apps built for DA)      │',
-        '└──────────────────────────────────────────┘',
-      ])}
+    '┌──────────────────────────────────────────┐',
+    '│  [grid ⊞]  ← click this for Apps        │',
+    '├──────────────────────────────────────────┤',
+    '│  Apps panel:                             │',
+    '│    Translation                           │',
+    '│    User Admin                            │',
+    '│    (+ any custom apps built for DA)      │',
+    '└──────────────────────────────────────────┘',
+  ])}
       <p><strong>Extensions / Plugins</strong> — accessed via the
       <strong>right-side dropdown</strong> (defaults to Outline):</p>
       ${uiDiagram([
-        '┌──────────────────────────────────────────┐',
-        '│                        [Outline ▼]       │  ← top right of canvas',
-        '├──────────────────────────────────────────┤',
-        '│  Dropdown options:                       │',
-        '│    WYSIWYG                               │',
-        '│    Outline   (default)                   │',
-        '│    ── custom extensions ──               │',
-        '│    Diagram Editor                        │',
-        '│    Disclosure Picker                     │',
-        '│    Workspace Tour  ← (this panel)        │',
-        '│    ...anything your team registers       │',
-        '└──────────────────────────────────────────┘',
-      ])}
+    '┌──────────────────────────────────────────┐',
+    '│                        [Outline ▼]       │  ← top right of canvas',
+    '├──────────────────────────────────────────┤',
+    '│  Dropdown options:                       │',
+    '│    WYSIWYG                               │',
+    '│    Outline   (default)                   │',
+    '│    ── custom extensions ──               │',
+    '│    Diagram Editor                        │',
+    '│    Disclosure Picker                     │',
+    '│    Workspace Tour  ← (this panel)        │',
+    '│    ...anything your team registers       │',
+    '└──────────────────────────────────────────┘',
+  ])}
       <p>Extensions in the dropdown are project-specific. Different sites will have
       completely different lists depending on what has been built and registered.</p>
       <details class="advanced-toggle">
@@ -587,6 +587,7 @@ function appsAndExtensionsStep() {
 }
 
 // ── WYSIWYG Quirks step ────────────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
 function wysiwygQuirksStep() {
   return {
     emoji: '⚠️',
@@ -622,14 +623,14 @@ function buildBrowseTour() {
         is listed here. Click a file to open it. Right-click or use the menu for rename,
         move, copy, and delete.</p>
         ${uiDiagram([
-          '  DA Browse  /org/repo',
-          '  ├── 📄 index.html',
-          '  ├── 📁 demo/',
-          '  │    ├── 📄 authoring.html',
-          '  │    └── 📁 disclosures/',
-          '  ├── 📊 nav.html',
-          '  └── 📁 tools/',
-        ])}
+    '  DA Browse  /org/repo',
+    '  ├── 📄 index.html',
+    '  ├── 📁 demo/',
+    '  │    ├── 📄 authoring.html',
+    '  │    └── 📁 disclosures/',
+    '  ├── 📊 nav.html',
+    '  └── 📁 tools/',
+  ])}
         <div class="tip-box">Use the search bar at the top to find any page by name
         across the entire site instantly.</div>
       </div>`,
@@ -907,8 +908,7 @@ function createController(tours) {
       const badge = document.createElement('span');
       let badgeText = 'New';
       let badgeClass = 'tour-badge new';
-      if (done) { badgeText = '✓ Done'; badgeClass = 'tour-badge done'; }
-      else if (dismissed) { badgeText = 'Skipped'; badgeClass = 'tour-badge done'; }
+      if (done) { badgeText = '✓ Done'; badgeClass = 'tour-badge done'; } else if (dismissed) { badgeText = 'Skipped'; badgeClass = 'tour-badge done'; }
       badge.className = badgeClass;
       badge.textContent = badgeText;
 
@@ -916,8 +916,10 @@ function createController(tours) {
       card.appendChild(body);
       card.appendChild(badge);
 
+      // eslint-disable-next-line no-use-before-define
       card.addEventListener('click', () => startTour(tour));
       card.addEventListener('keydown', (e) => {
+        // eslint-disable-next-line no-use-before-define
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startTour(tour); }
       });
       tourList.appendChild(card);
@@ -931,6 +933,7 @@ function createController(tours) {
     visitedSteps.add(0);
     launcher.style.display = 'none';
     tourPanel.classList.add('visible');
+    // eslint-disable-next-line no-use-before-define
     renderStep();
     tpContent.focus();
   }
@@ -957,6 +960,7 @@ function createController(tours) {
       dot.addEventListener('click', () => {
         currentStep = i;
         visitedSteps.add(i);
+        // eslint-disable-next-line no-use-before-define
         renderStep();
       });
       tpDots.appendChild(dot);
