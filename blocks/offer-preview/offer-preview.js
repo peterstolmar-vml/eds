@@ -330,11 +330,14 @@ function renderBrowser(data, srcUrl, wrapper) {
       buildSwatchBar(offerItem.offer),
     );
     tooltip.append(preview, meta);
+
+    // Position above the row, not below
+    tooltip.hidden = false; // must be visible to measure height
     const rect = anchorEl.getBoundingClientRect();
     const wrapRect = wrapper.getBoundingClientRect();
-    tooltip.style.top = `${rect.bottom - wrapRect.top + 8}px`;
+    const tooltipHeight = tooltip.offsetHeight;
+    tooltip.style.top = `${rect.top - wrapRect.top - tooltipHeight - 8}px`;
     tooltip.style.left = `${rect.left - wrapRect.left}px`;
-    tooltip.hidden = false;
   }
 
   function hideTooltip() {
