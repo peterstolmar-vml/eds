@@ -322,7 +322,9 @@ function renderBrowser(data, srcUrl, wrapper) {
     clearTimeout(tooltipTimer);
     tooltip.innerHTML = '';
     const preview = buildOfferCard(offerItem.offer, 'banner');
-    const meta = el('div', { cls: 'offer-browser-tooltip-meta' },
+    const meta = el(
+      'div',
+      { cls: 'offer-browser-tooltip-meta' },
       el('p', {}, el('strong', {}, offerItem.label)),
       el('p', { cls: 'offer-window-label' }, offerItem.offerWindow),
       buildSwatchBar(offerItem.offer),
