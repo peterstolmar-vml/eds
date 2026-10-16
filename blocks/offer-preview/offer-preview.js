@@ -259,7 +259,6 @@ function getBadgeLabel(item) {
 function renderBrowser(data, srcUrl, wrapper) {
   const org = 'peterstolmar-vml';
   const site = 'eds';
-  const scBase = 'https://da-sc.adobeaem.workers.dev/preview';
   const formBase = 'https://da.live/form#';
   const schemaBase = 'https://da.live/apps/schema#';
 
