@@ -306,11 +306,11 @@ function renderBrowser(data, srcUrl, wrapper) {
   }, '✏️ Edit Offer');
 
   const newFormLink = el('a', {
-    href: `${scBase}/${org}/${site}`,
+    href: `https://da.live/#/${org}/${site}/structured-content`,
     cls: 'offer-browser-action offer-browser-action--new',
     target: '_blank',
     rel: 'noopener',
-    title: 'Browse all structured content',
+    title: 'Browse structured content folder',
   }, '＋ New / Browse SC');
 
   const toolbar = el('div', { cls: 'offer-browser-toolbar' }, searchInput, schemaLink, formLink, newFormLink);
