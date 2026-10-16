@@ -259,7 +259,6 @@ function getBadgeLabel(item) {
 function renderBrowser(data, srcUrl, wrapper) {
   const org = 'peterstolmar-vml';
   const site = 'eds';
-  const scBase = 'https://da-sc.adobeaem.workers.dev/preview';
   const formBase = 'https://da.live/form#';
   const schemaBase = 'https://da.live/apps/schema#';
 
@@ -306,11 +305,11 @@ function renderBrowser(data, srcUrl, wrapper) {
   }, '✏️ Edit Offer');
 
   const newFormLink = el('a', {
-    href: `${scBase}/${org}/${site}`,
+    href: `https://da.live/#/${org}/${site}/structured-content`,
     cls: 'offer-browser-action offer-browser-action--new',
     target: '_blank',
     rel: 'noopener',
-    title: 'Browse all structured content',
+    title: 'Browse structured content folder',
   }, '＋ New / Browse SC');
 
   const toolbar = el('div', { cls: 'offer-browser-toolbar' }, searchInput, schemaLink, formLink, newFormLink);
