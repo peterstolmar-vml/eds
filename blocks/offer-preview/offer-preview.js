@@ -6,7 +6,7 @@ function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   Object.entries(attrs).forEach(([k, v]) => {
     if (k === 'cls') node.className = v;
-    else if (k === 'data') Object.entries(v).forEach(([dk, dv]) => node.dataset[dk] = dv);
+    else if (k === 'data') Object.entries(v).forEach(([dk, dv]) => { node.dataset[dk] = dv; });
     else node.setAttribute(k, v);
   });
   children.flat().forEach((c) => node.append(typeof c === 'string' ? document.createTextNode(c) : c));
@@ -37,8 +37,12 @@ function buildOfferCard(offer, size = 'normal') {
     rel: 'noopener',
   }, offer.ctaText || 'Learn More');
 
-  const card = el('div', { cls: `offer-card offer-card--${size}` },
-    el('div', { cls: 'offer-card-body' },
+  const card = el(
+    'div',
+    { cls: `offer-card offer-card--${size}` },
+    el(
+      'div',
+      { cls: 'offer-card-body' },
       ...(offer.headline ? [el(isSmall ? 'strong' : 'h3', { cls: 'offer-headline' }, offer.headline)] : []),
       ...(offer.subheading && !isSmall ? [el('p', { cls: 'offer-sub' }, offer.subheading)] : []),
       cta,
@@ -64,7 +68,9 @@ function buildSwatchBar(offer) {
 
   if (!swatches.length) return el('p', { cls: 'offer-no-styles' }, 'No custom colors authored (fallback)');
 
-  return el('div', { cls: 'offer-swatches' },
+  return el(
+    'div',
+    { cls: 'offer-swatches' },
     ...swatches.map(([label, hex]) => {
       const swatch = el('span', { cls: 'offer-swatch' });
       swatch.style.backgroundColor = hex;
@@ -86,8 +92,12 @@ function renderBanner(offers, wrapper) {
 
 function renderCarousel(allOffers, fallback, wrapper) {
   const slides = [
-    ...allOffers.map((s) => ({ ...s.offerDetails, _season: s.seasonName, _window: `${s.startDate?.slice(0, 10)} – ${s.endDate?.slice(0, 10)}` })),
-    { ...fallback, _season: 'Fallback Offer', _window: 'Always-on' },
+    ...allOffers.map((s) => ({
+      ...s.offerDetails,
+      season: s.seasonName,
+      offerWindow: `${s.startDate?.slice(0, 10)} – ${s.endDate?.slice(0, 10)}`,
+    })),
+    { ...fallback, season: 'Fallback Offer', offerWindow: 'Always-on' },
   ];
 
   let current = 0;
@@ -100,6 +110,7 @@ function renderCarousel(allOffers, fallback, wrapper) {
 
   const dotEls = slides.map((_, i) => {
     const d = el('button', { cls: 'offer-carousel-dot', 'aria-label': `Offer ${i + 1}` });
+    // eslint-disable-next-line no-use-before-define
     d.addEventListener('click', () => go(i));
     return d;
   });
@@ -112,8 +123,8 @@ function renderCarousel(allOffers, fallback, wrapper) {
     track.append(buildOfferCard(s, 'carousel'));
     meta.innerHTML = '';
     meta.append(
-      el('span', { cls: 'offer-season-label' }, s._season),
-      el('span', { cls: 'offer-window-label' }, s._window),
+      el('span', { cls: 'offer-season-label' }, s.season),
+      el('span', { cls: 'offer-window-label' }, s.offerWindow),
       buildSwatchBar(s),
     );
     dotEls.forEach((d, i) => d.classList.toggle('active', i === current));
@@ -129,8 +140,12 @@ function renderCarousel(allOffers, fallback, wrapper) {
 
 function renderTabs(allOffers, fallback, wrapper) {
   const items = [
-    ...allOffers.map((s) => ({ label: s.seasonName, offer: s.offerDetails, window: `${s.startDate?.slice(0, 10)} – ${s.endDate?.slice(0, 10)}` })),
-    { label: 'Fallback', offer: fallback, window: 'Always-on' },
+    ...allOffers.map((s) => ({
+      label: s.seasonName,
+      offer: s.offerDetails,
+      offerWindow: `${s.startDate?.slice(0, 10)} – ${s.endDate?.slice(0, 10)}`,
+    })),
+    { label: 'Fallback', offer: fallback, offerWindow: 'Always-on' },
   ];
 
   const tabBar = el('div', { cls: 'offer-tab-bar', role: 'tablist' });
@@ -144,14 +159,18 @@ function renderTabs(allOffers, fallback, wrapper) {
       'aria-controls': `offer-panel-${i}`,
     }, item.label);
 
-    const panel = el('div', {
-      cls: 'offer-tab-panel',
-      role: 'tabpanel',
-      id: `offer-panel-${i}`,
-    },
+    const panel = el(
+      'div',
+      {
+        cls: 'offer-tab-panel',
+        role: 'tabpanel',
+        id: `offer-panel-${i}`,
+      },
       buildOfferCard(item.offer, 'tab'),
-      el('div', { cls: 'offer-tab-meta' },
-        el('span', { cls: 'offer-window-label' }, item.window),
+      el(
+        'div',
+        { cls: 'offer-tab-meta' },
+        el('span', { cls: 'offer-window-label' }, item.offerWindow),
         buildSwatchBar(item.offer),
       ),
     );
@@ -180,14 +199,18 @@ function renderCards(allOffers, fallback, wrapper) {
   const grid = el('div', { cls: 'offer-cards-grid' });
   allOffers.forEach((s) => {
     const card = buildOfferCard(s.offerDetails, 'card');
-    const info = el('div', { cls: 'offer-card-info' },
+    const info = el(
+      'div',
+      { cls: 'offer-card-info' },
       el('p', { cls: 'offer-window-label' }, `${s.startDate?.slice(0, 10)} – ${s.endDate?.slice(0, 10)}`),
       buildSwatchBar(s.offerDetails),
     );
     grid.append(el('div', { cls: 'offer-card-wrap' }, card, info));
   });
   const fbCard = buildOfferCard(fallback, 'card');
-  const fbInfo = el('div', { cls: 'offer-card-info' },
+  const fbInfo = el(
+    'div',
+    { cls: 'offer-card-info' },
     el('p', { cls: 'offer-window-label' }, 'Fallback — always-on'),
     buildSwatchBar(fallback),
   );
@@ -202,10 +225,16 @@ function renderStrip(allOffers, fallback, wrapper) {
   ];
   const strip = el('div', { cls: 'offer-strip' });
   items.forEach((offer) => {
-    const pill = el('div', { cls: 'offer-strip-pill' },
+    const pill = el(
+      'div',
+      { cls: 'offer-strip-pill' },
       el('span', { cls: 'offer-strip-headline' }, offer.headline || ''),
-      el('a', { href: offer.targetUrl || '#', cls: 'offer-cta offer-strip-cta', target: '_blank', rel: 'noopener' },
-        offer.ctaText || 'Learn More'),
+      el('a', {
+        href: offer.targetUrl || '#',
+        cls: 'offer-cta offer-strip-cta',
+        target: '_blank',
+        rel: 'noopener',
+      }, offer.ctaText || 'Learn More'),
     );
     const styles = offer.styles || {};
     if (styles.backgroundColor) pill.style.backgroundColor = styles.backgroundColor;
@@ -222,6 +251,11 @@ function renderStrip(allOffers, fallback, wrapper) {
 
 // ─── Offer Browser Panel ─────────────────────────────────────────────────────
 
+function getBadgeLabel(item) {
+  if (item.type === 'fallback') return 'fallback';
+  return item.isActive ? 'active' : 'inactive';
+}
+
 function renderBrowser(data, srcUrl, wrapper) {
   const org = 'peterstolmar-vml';
   const site = 'eds';
@@ -233,14 +267,14 @@ function renderBrowser(data, srcUrl, wrapper) {
     ...(data.seasonalOffers || []).map((s) => ({
       label: s.seasonName,
       offer: s.offerDetails,
-      window: `${s.startDate?.slice(0, 10)} – ${s.endDate?.slice(0, 10)}`,
+      offerWindow: `${s.startDate?.slice(0, 10)} – ${s.endDate?.slice(0, 10)}`,
       isActive: s.isActive,
       type: 'seasonal',
     })),
     {
       label: 'Fallback Offer',
       offer: data.fallbackOffer,
-      window: 'Always-on',
+      offerWindow: 'Always-on',
       isActive: true,
       type: 'fallback',
     },
@@ -248,7 +282,6 @@ function renderBrowser(data, srcUrl, wrapper) {
 
   let filtered = [...allOffers];
 
-  // Toolbar
   const searchInput = el('input', {
     cls: 'offer-browser-search',
     type: 'search',
@@ -282,7 +315,6 @@ function renderBrowser(data, srcUrl, wrapper) {
 
   const toolbar = el('div', { cls: 'offer-browser-toolbar' }, searchInput, schemaLink, formLink, newFormLink);
 
-  // Preview tooltip
   const tooltip = el('div', { cls: 'offer-browser-tooltip', 'aria-live': 'polite', role: 'tooltip' });
   tooltip.hidden = true;
   let tooltipTimer;
@@ -291,9 +323,11 @@ function renderBrowser(data, srcUrl, wrapper) {
     clearTimeout(tooltipTimer);
     tooltip.innerHTML = '';
     const preview = buildOfferCard(offerItem.offer, 'banner');
-    const meta = el('div', { cls: 'offer-browser-tooltip-meta' },
+    const meta = el(
+      'div',
+      { cls: 'offer-browser-tooltip-meta' },
       el('p', {}, el('strong', {}, offerItem.label)),
-      el('p', { cls: 'offer-window-label' }, offerItem.window),
+      el('p', { cls: 'offer-window-label' }, offerItem.offerWindow),
       buildSwatchBar(offerItem.offer),
     );
     tooltip.append(preview, meta);
@@ -308,7 +342,6 @@ function renderBrowser(data, srcUrl, wrapper) {
     tooltipTimer = setTimeout(() => { tooltip.hidden = true; }, 200);
   }
 
-  // List
   const list = el('ul', { cls: 'offer-browser-list', role: 'list' });
 
   function renderList() {
@@ -320,12 +353,14 @@ function renderBrowser(data, srcUrl, wrapper) {
 
       const badge = el('span', {
         cls: `offer-browser-badge offer-browser-badge--${item.type}`,
-      }, item.type === 'fallback' ? 'fallback' : item.isActive ? 'active' : 'inactive');
+      }, getBadgeLabel(item));
 
-      const row = el('li', { cls: 'offer-browser-row' },
+      const row = el(
+        'li',
+        { cls: 'offer-browser-row' },
         swatch,
         el('span', { cls: 'offer-browser-label' }, item.offer?.headline || item.label),
-        el('span', { cls: 'offer-browser-window' }, item.window),
+        el('span', { cls: 'offer-browser-window' }, item.offerWindow),
         badge,
       );
 
@@ -337,8 +372,7 @@ function renderBrowser(data, srcUrl, wrapper) {
 
   searchInput.addEventListener('input', () => {
     const q = searchInput.value.toLowerCase();
-    filtered = allOffers.filter((o) =>
-      (o.label + (o.offer?.headline || '') + (o.offer?.id || '')).toLowerCase().includes(q));
+    filtered = allOffers.filter((o) => `${o.label}${o.offer?.headline || ''}${o.offer?.id || ''}`.toLowerCase().includes(q));
     renderList();
   });
 
@@ -425,10 +459,12 @@ function injectStyles() {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 20px;
     }
-    .offer-card-wrap { display: flex; flex-direction: column; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .offer-card-wrap {
+      display: flex; flex-direction: column; border-radius: 8px;
+      overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
     .offer-card-wrap--fallback { border: 2px dashed #bbb; }
     .offer-card-info { padding: 12px 16px; background: #fafafa; display: flex; flex-direction: column; gap: 4px; }
-    /* Browser panel */
     .offer-browser-panel { font-size: 0.9rem; }
     .offer-browser-toolbar {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -441,8 +477,7 @@ function injectStyles() {
     .offer-browser-action {
       padding: 7px 14px; border-radius: 4px; border: 1px solid #ccc;
       text-decoration: none; font-size: 0.82rem; color: #333;
-      white-space: nowrap; background: #f5f5f5;
-      transition: background 0.15s;
+      white-space: nowrap; background: #f5f5f5; transition: background 0.15s;
     }
     .offer-browser-action:hover { background: #e8e8e8; }
     .offer-browser-action--new { background: #7722ff; color: #fff; border-color: #5500cc; }
@@ -454,7 +489,10 @@ function injectStyles() {
       transition: background 0.12s;
     }
     .offer-browser-row:hover { background: #f0f0f0; }
-    .offer-browser-swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #ccc; flex-shrink: 0; background: #eee; }
+    .offer-browser-swatch {
+      width: 20px; height: 20px; border-radius: 4px;
+      border: 1px solid #ccc; flex-shrink: 0; background: #eee;
+    }
     .offer-browser-label { flex: 1; font-weight: 600; }
     .offer-browser-window { font-size: 0.78rem; color: #888; white-space: nowrap; }
     .offer-browser-badge {
@@ -515,9 +553,7 @@ export default async function decorate(block) {
   else if (variant === 'cards') renderCards(allOffers, fallback, wrapper);
   else if (variant === 'strip') renderStrip(allOffers, fallback, wrapper);
   else if (variant === 'browser') renderBrowser(data, srcUrl, wrapper);
-  else {
-    wrapper.append(el('p', {}, `Unknown variant: "${variant}"`));
-  }
+  else wrapper.append(el('p', {}, `Unknown variant: "${variant}"`));
 
   block.append(wrapper);
 }
