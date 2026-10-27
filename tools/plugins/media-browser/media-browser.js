@@ -1,9 +1,9 @@
 /* eslint-disable import/no-unresolved */
-/* eslint-disable no-use-before-define */
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif']);
-const BASE_ORIGIN = 'https://content.da.live';
+const BASE_CONTENT = 'https://content.da.live';
+const BASE_ADMIN = 'https://admin.da.live';
 const SORT_MODES = ['name-asc', 'name-desc', 'date-desc', 'date-asc'];
 const SORT_LABELS = {
   'name-asc': 'Name A-Z',
@@ -47,7 +47,9 @@ function isImage(ext) {
 function formatDate(ms) {
   if (!ms) return '';
   return new Date(ms).toLocaleDateString(undefined, {
-    month: 'short', day: 'numeric', year: '2-digit',
+    month: 'short',
+    day: 'numeric',
+    year: '2-digit',
   });
 }
 
@@ -59,7 +61,7 @@ function guessAlt(name) {
 }
 
 function contentUrl(itemPath) {
-  return `${BASE_ORIGIN}/${daOrg}/${daRepo}${itemPath}`;
+  return `${BASE_CONTENT}/${daOrg}/${daRepo}${itemPath}`;
 }
 
 function sortItems(items) {
@@ -217,9 +219,6 @@ function renderGrid() {
   gridArea.appendChild(grid);
 }
 
-// navigateTo and loadFolder are mutually dependent.
-// navigateTo is defined first; loadFolder is defined immediately after.
-// renderGrid and buildBreadcrumb (called by loadFolder) are defined above both.
 function navigateTo(path) {
   currentPath = path;
   selectedItems.clear();
@@ -237,24 +236,40 @@ async function loadFolder() {
   gridArea.appendChild(loading);
   buildBreadcrumb();
 
-  const url = `${BASE_ORIGIN}/${daOrg}/${daRepo}${currentPath}`;
+  // Use admin API for authenticated directory listing
+  const url = `${BASE_ADMIN}/list/${daOrg}/${daRepo}${currentPath}`;
   // eslint-disable-next-line no-console
-  console.log('[media-browser] fetching:', url, 'org:', daOrg, 'repo:', daRepo);
+  console.log('[media-browser] fetching:', url);
   try {
     const res = await daActions.daFetch(url, { headers: { Accept: 'application/json' } });
     // eslint-disable-next-line no-console
-    console.log('[media-browser] response status:', res.status, res.headers.get('content-type'));
+    console.log('[media-browser] status:', res.status, 'type:', res.headers.get('content-type'));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     // eslint-disable-next-line no-console
-    console.log('[media-browser] raw response:', text.slice(0, 200));
+    console.log('[media-browser] raw:', text.slice(0, 300));
     let data;
     try {
       data = JSON.parse(text);
     } catch {
       throw new Error(`Not JSON: ${text.slice(0, 80)}`);
     }
-    allItems = Array.isArray(data) ? data : [];
+    // admin API returns { items: [...] }
+    const raw = Array.isArray(data) ? data : (data.items || []);
+    // Normalize: admin items have { path, ext, lastModified, name? }
+    allItems = raw.map((item) => {
+      const parts = item.path.split('/');
+      const fullName = parts[parts.length - 1];
+      const dotIdx = fullName.lastIndexOf('.');
+      const ext = dotIdx > 0 ? fullName.slice(dotIdx + 1) : '';
+      const name = dotIdx > 0 ? fullName.slice(0, dotIdx) : fullName;
+      return {
+        path: item.path,
+        name: item.name || name,
+        ext: item.ext || ext,
+        lastModified: item.lastModified,
+      };
+    });
     // eslint-disable-next-line no-console
     console.log('[media-browser] items:', allItems);
     renderGrid();
@@ -344,12 +359,13 @@ viewListBtn.addEventListener('click', () => {
   renderGrid();
 });
 
+// ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   const { context, actions } = await DA_SDK;
   daActions = actions;
   daOrg = context.org || 'peterstolmar-vml';
   daRepo = context.repo || 'eds';
   // eslint-disable-next-line no-console
-  console.log('[media-browser] context:', context);
+  console.log('[media-browser] context:', JSON.stringify(context));
   loadFolder();
 })();
