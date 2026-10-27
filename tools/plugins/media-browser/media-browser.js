@@ -40,46 +40,71 @@ const altInput = document.getElementById('alt-input');
 const modalCancel = document.getElementById('modal-cancel');
 const modalInsert = document.getElementById('modal-insert');
 
-function isImage(ext) {
-  return IMAGE_EXTS.has((ext || '').toLowerCase());
-}
+const isImage = (ext) => IMAGE_EXTS.has((ext || '').toLowerCase());
 
-function formatDate(ms) {
+const formatDate = (ms) => {
   if (!ms) return '';
   return new Date(ms).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     year: '2-digit',
   });
-}
+};
 
-function guessAlt(name) {
-  return name
-    .replace(/[-_]/g, ' ')
-    .replace(/\.[^.]+$/, '')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
+const guessAlt = (name) => name
+  .replace(/[-_]/g, ' ')
+  .replace(/\.[^.]+$/, '')
+  .replace(/\b\w/g, (c) => c.toUpperCase());
 
-function contentUrl(itemPath) {
-  return `${BASE_CONTENT}/${daOrg}/${daRepo}${itemPath}`;
-}
+const contentUrl = (itemPath) => `${BASE_CONTENT}/${daOrg}/${daRepo}${itemPath}`;
 
-function sortItems(items) {
-  return [...items].sort((a, b) => {
-    if (sortMode === 'name-asc') return a.name.localeCompare(b.name);
-    if (sortMode === 'name-desc') return b.name.localeCompare(a.name);
-    if (sortMode === 'date-desc') return (b.lastModified || 0) - (a.lastModified || 0);
-    return (a.lastModified || 0) - (b.lastModified || 0);
-  });
-}
+const sortItems = (items) => [...items].sort((a, b) => {
+  if (sortMode === 'name-asc') return a.name.localeCompare(b.name);
+  if (sortMode === 'name-desc') return b.name.localeCompare(a.name);
+  if (sortMode === 'date-desc') return (b.lastModified || 0) - (a.lastModified || 0);
+  return (a.lastModified || 0) - (b.lastModified || 0);
+});
 
-function filterItems(items) {
+const filterItems = (items) => {
   if (!searchVal) return items;
   const q = searchVal.toLowerCase();
   return items.filter((i) => i.name.toLowerCase().includes(q));
-}
+};
 
-function buildBreadcrumb() {
+const updateSelBar = () => {
+  const count = selectedItems.size;
+  if (count === 0) {
+    selBar.classList.remove('visible');
+  } else {
+    selBar.classList.add('visible');
+    selLabel.textContent = `${count} image${count > 1 ? 's' : ''} selected`;
+  }
+};
+
+const buildImageHtml = (url, alt) =>
+  `<p><picture><source srcset="${url}"><img src="${url}" alt="${alt}"></picture></p>`;
+
+const openInsertModal = (item) => {
+  activeInsertItem = item;
+  modalThumb.src = contentUrl(item.path);
+  modalThumb.alt = guessAlt(item.name);
+  altInput.value = guessAlt(item.name);
+  modal.classList.add('open');
+  setTimeout(() => altInput.focus(), 50);
+};
+
+const insertAll = () => {
+  const html = [...selectedItems].map((p) => {
+    const item = allItems.find((i) => i.path === p);
+    const alt = item ? guessAlt(item.name) : '';
+    return buildImageHtml(contentUrl(p), alt);
+  }).join('');
+  daActions.sendHTML(html);
+  selectedItems.clear();
+  updateSelBar();
+};
+
+const buildBreadcrumb = () => {
   breadcrumbEl.textContent = '';
   const parts = currentPath.replace(/^\//, '').split('/');
   parts.forEach((part, idx) => {
@@ -93,48 +118,16 @@ function buildBreadcrumb() {
     span.textContent = part;
     if (idx < parts.length - 1) {
       const targetPath = `/${parts.slice(0, idx + 1).join('/')}`;
-      span.addEventListener('click', () => navigateTo(targetPath));
+      // navigateTo is a const defined below — arrow functions are not hoisted
+      // but buildBreadcrumb is only ever CALLED after navigateTo is defined,
+      // so this reference is safe at call time
+      span.addEventListener('click', () => navigateTo(targetPath)); // eslint-disable-line no-use-before-define
     }
     breadcrumbEl.appendChild(span);
   });
-}
+};
 
-function updateSelBar() {
-  const count = selectedItems.size;
-  if (count === 0) {
-    selBar.classList.remove('visible');
-  } else {
-    selBar.classList.add('visible');
-    selLabel.textContent = `${count} image${count > 1 ? 's' : ''} selected`;
-  }
-}
-
-function buildImageHtml(url, alt) {
-  return `<p><picture><source srcset="${url}"><img src="${url}" alt="${alt}"></picture></p>`;
-}
-
-function openInsertModal(item) {
-  activeInsertItem = item;
-  modalThumb.src = contentUrl(item.path);
-  modalThumb.alt = guessAlt(item.name);
-  altInput.value = guessAlt(item.name);
-  modal.classList.add('open');
-  setTimeout(() => altInput.focus(), 50);
-}
-
-function insertAll() {
-  const paths = [...selectedItems];
-  const html = paths.map((p) => {
-    const item = allItems.find((i) => i.path === p);
-    const alt = item ? guessAlt(item.name) : '';
-    return buildImageHtml(contentUrl(p), alt);
-  }).join('');
-  daActions.sendHTML(html);
-  selectedItems.clear();
-  updateSelBar();
-}
-
-function renderGrid() {
+const renderGrid = () => {
   gridArea.textContent = '';
   gridArea.className = `grid-area${viewMode === 'list' ? ' list-view' : ''}`;
 
@@ -181,7 +174,6 @@ function renderGrid() {
     label.className = 'card-label';
     label.textContent = item.name;
     label.title = item.name;
-
     card.appendChild(thumbWrap);
     card.appendChild(label);
 
@@ -194,7 +186,7 @@ function renderGrid() {
 
     card.addEventListener('click', () => {
       if (isFolder) {
-        navigateTo(`${currentPath}/${item.name}`);
+        navigateTo(item.name); // eslint-disable-line no-use-before-define
         return;
       }
       if (!img) return;
@@ -217,18 +209,9 @@ function renderGrid() {
   });
 
   gridArea.appendChild(grid);
-}
+};
 
-function navigateTo(path) {
-  currentPath = path;
-  selectedItems.clear();
-  searchEl.value = '';
-  searchVal = '';
-  updateSelBar();
-  loadFolder();
-}
-
-async function loadFolder() {
+const loadFolder = async () => {
   gridArea.textContent = '';
   const loading = document.createElement('div');
   loading.className = 'loader';
@@ -236,7 +219,6 @@ async function loadFolder() {
   gridArea.appendChild(loading);
   buildBreadcrumb();
 
-  // Use admin API for authenticated directory listing
   const url = `${BASE_ADMIN}/list/${daOrg}/${daRepo}${currentPath}`;
   // eslint-disable-next-line no-console
   console.log('[media-browser] fetching:', url);
@@ -254,9 +236,7 @@ async function loadFolder() {
     } catch {
       throw new Error(`Not JSON: ${text.slice(0, 80)}`);
     }
-    // admin API returns { items: [...] }
     const raw = Array.isArray(data) ? data : (data.items || []);
-    // Normalize: admin items have { path, ext, lastModified, name? }
     allItems = raw.map((item) => {
       const parts = item.path.split('/');
       const fullName = parts[parts.length - 1];
@@ -282,7 +262,16 @@ async function loadFolder() {
     errEl.textContent = `Error: ${err.message}`;
     gridArea.appendChild(errEl);
   }
-}
+};
+
+const navigateTo = (path) => {
+  currentPath = path;
+  selectedItems.clear();
+  searchEl.value = '';
+  searchVal = '';
+  updateSelBar();
+  loadFolder();
+};
 
 // ── Event listeners ────────────────────────────────────────────────────────
 
