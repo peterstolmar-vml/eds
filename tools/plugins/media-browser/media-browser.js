@@ -1,9 +1,9 @@
 /* eslint-disable import/no-unresolved */
-/* eslint-disable no-use-before-define */
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif']);
-const BASE_ORIGIN = 'https://content.da.live';
+const BASE_CONTENT = 'https://content.da.live';
+const BASE_ADMIN = 'https://admin.da.live';
 const SORT_MODES = ['name-asc', 'name-desc', 'date-desc', 'date-asc'];
 const SORT_LABELS = {
   'name-asc': 'Name A-Z',
@@ -40,44 +40,70 @@ const altInput = document.getElementById('alt-input');
 const modalCancel = document.getElementById('modal-cancel');
 const modalInsert = document.getElementById('modal-insert');
 
-function isImage(ext) {
-  return IMAGE_EXTS.has((ext || '').toLowerCase());
-}
+const isImage = (ext) => IMAGE_EXTS.has((ext || '').toLowerCase());
 
-function formatDate(ms) {
+const formatDate = (ms) => {
   if (!ms) return '';
   return new Date(ms).toLocaleDateString(undefined, {
-    month: 'short', day: 'numeric', year: '2-digit',
+    month: 'short',
+    day: 'numeric',
+    year: '2-digit',
   });
-}
+};
 
-function guessAlt(name) {
-  return name
-    .replace(/[-_]/g, ' ')
-    .replace(/\.[^.]+$/, '')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
+const guessAlt = (name) => name
+  .replace(/[-_]/g, ' ')
+  .replace(/\.[^.]+$/, '')
+  .replace(/\b\w/g, (c) => c.toUpperCase());
 
-function contentUrl(itemPath) {
-  return `${BASE_ORIGIN}/${daOrg}/${daRepo}${itemPath}`;
-}
+const contentUrl = (itemPath) => `${BASE_CONTENT}/${daOrg}/${daRepo}${itemPath}`;
 
-function sortItems(items) {
-  return [...items].sort((a, b) => {
-    if (sortMode === 'name-asc') return a.name.localeCompare(b.name);
-    if (sortMode === 'name-desc') return b.name.localeCompare(a.name);
-    if (sortMode === 'date-desc') return (b.lastModified || 0) - (a.lastModified || 0);
-    return (a.lastModified || 0) - (b.lastModified || 0);
-  });
-}
+const sortItems = (items) => [...items].sort((a, b) => {
+  if (sortMode === 'name-asc') return a.name.localeCompare(b.name);
+  if (sortMode === 'name-desc') return b.name.localeCompare(a.name);
+  if (sortMode === 'date-desc') return (b.lastModified || 0) - (a.lastModified || 0);
+  return (a.lastModified || 0) - (b.lastModified || 0);
+});
 
-function filterItems(items) {
+const filterItems = (items) => {
   if (!searchVal) return items;
   const q = searchVal.toLowerCase();
   return items.filter((i) => i.name.toLowerCase().includes(q));
-}
+};
 
-function buildBreadcrumb() {
+const updateSelBar = () => {
+  const count = selectedItems.size;
+  if (count === 0) {
+    selBar.classList.remove('visible');
+  } else {
+    selBar.classList.add('visible');
+    selLabel.textContent = `${count} image${count > 1 ? 's' : ''} selected`;
+  }
+};
+
+const buildImageHtml = (url, alt) => `<p><picture><source srcset="${url}"><img src="${url}" alt="${alt}"></picture></p>`;
+
+const openInsertModal = (item) => {
+  activeInsertItem = item;
+  modalThumb.src = contentUrl(item.path);
+  modalThumb.alt = guessAlt(item.name);
+  altInput.value = guessAlt(item.name);
+  modal.classList.add('open');
+  setTimeout(() => altInput.focus(), 50);
+};
+
+const insertAll = () => {
+  const html = [...selectedItems].map((p) => {
+    const item = allItems.find((i) => i.path === p);
+    const alt = item ? guessAlt(item.name) : '';
+    return buildImageHtml(contentUrl(p), alt);
+  }).join('');
+  daActions.sendHTML(html);
+  selectedItems.clear();
+  updateSelBar();
+};
+
+const buildBreadcrumb = () => {
   breadcrumbEl.textContent = '';
   const parts = currentPath.replace(/^\//, '').split('/');
   parts.forEach((part, idx) => {
@@ -91,48 +117,16 @@ function buildBreadcrumb() {
     span.textContent = part;
     if (idx < parts.length - 1) {
       const targetPath = `/${parts.slice(0, idx + 1).join('/')}`;
-      span.addEventListener('click', () => navigateTo(targetPath));
+      // navigateTo is a const defined below — arrow functions are not hoisted
+      // but buildBreadcrumb is only ever CALLED after navigateTo is defined,
+      // so this reference is safe at call time
+      span.addEventListener('click', () => navigateTo(targetPath)); // eslint-disable-line no-use-before-define
     }
     breadcrumbEl.appendChild(span);
   });
-}
+};
 
-function updateSelBar() {
-  const count = selectedItems.size;
-  if (count === 0) {
-    selBar.classList.remove('visible');
-  } else {
-    selBar.classList.add('visible');
-    selLabel.textContent = `${count} image${count > 1 ? 's' : ''} selected`;
-  }
-}
-
-function buildImageHtml(url, alt) {
-  return `<p><picture><source srcset="${url}"><img src="${url}" alt="${alt}"></picture></p>`;
-}
-
-function openInsertModal(item) {
-  activeInsertItem = item;
-  modalThumb.src = contentUrl(item.path);
-  modalThumb.alt = guessAlt(item.name);
-  altInput.value = guessAlt(item.name);
-  modal.classList.add('open');
-  setTimeout(() => altInput.focus(), 50);
-}
-
-function insertAll() {
-  const paths = [...selectedItems];
-  const html = paths.map((p) => {
-    const item = allItems.find((i) => i.path === p);
-    const alt = item ? guessAlt(item.name) : '';
-    return buildImageHtml(contentUrl(p), alt);
-  }).join('');
-  daActions.sendHTML(html);
-  selectedItems.clear();
-  updateSelBar();
-}
-
-function renderGrid() {
+const renderGrid = () => {
   gridArea.textContent = '';
   gridArea.className = `grid-area${viewMode === 'list' ? ' list-view' : ''}`;
 
@@ -179,7 +173,6 @@ function renderGrid() {
     label.className = 'card-label';
     label.textContent = item.name;
     label.title = item.name;
-
     card.appendChild(thumbWrap);
     card.appendChild(label);
 
@@ -192,7 +185,7 @@ function renderGrid() {
 
     card.addEventListener('click', () => {
       if (isFolder) {
-        navigateTo(`${currentPath}/${item.name}`);
+        navigateTo(item.name); // eslint-disable-line no-use-before-define
         return;
       }
       if (!img) return;
@@ -215,21 +208,9 @@ function renderGrid() {
   });
 
   gridArea.appendChild(grid);
-}
+};
 
-// navigateTo and loadFolder are mutually dependent.
-// navigateTo is defined first; loadFolder is defined immediately after.
-// renderGrid and buildBreadcrumb (called by loadFolder) are defined above both.
-function navigateTo(path) {
-  currentPath = path;
-  selectedItems.clear();
-  searchEl.value = '';
-  searchVal = '';
-  updateSelBar();
-  loadFolder();
-}
-
-async function loadFolder() {
+const loadFolder = async () => {
   gridArea.textContent = '';
   const loading = document.createElement('div');
   loading.className = 'loader';
@@ -237,24 +218,37 @@ async function loadFolder() {
   gridArea.appendChild(loading);
   buildBreadcrumb();
 
-  const url = `${BASE_ORIGIN}/${daOrg}/${daRepo}${currentPath}`;
+  const url = `${BASE_ADMIN}/list/${daOrg}/${daRepo}${currentPath}`;
   // eslint-disable-next-line no-console
-  console.log('[media-browser] fetching:', url, 'org:', daOrg, 'repo:', daRepo);
+  console.log('[media-browser] fetching:', url);
   try {
     const res = await daActions.daFetch(url, { headers: { Accept: 'application/json' } });
     // eslint-disable-next-line no-console
-    console.log('[media-browser] response status:', res.status, res.headers.get('content-type'));
+    console.log('[media-browser] status:', res.status, 'type:', res.headers.get('content-type'));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     // eslint-disable-next-line no-console
-    console.log('[media-browser] raw response:', text.slice(0, 200));
+    console.log('[media-browser] raw:', text.slice(0, 300));
     let data;
     try {
       data = JSON.parse(text);
     } catch {
       throw new Error(`Not JSON: ${text.slice(0, 80)}`);
     }
-    allItems = Array.isArray(data) ? data : [];
+    const raw = Array.isArray(data) ? data : (data.items || []);
+    allItems = raw.map((item) => {
+      const parts = item.path.split('/');
+      const fullName = parts[parts.length - 1];
+      const dotIdx = fullName.lastIndexOf('.');
+      const ext = dotIdx > 0 ? fullName.slice(dotIdx + 1) : '';
+      const name = dotIdx > 0 ? fullName.slice(0, dotIdx) : fullName;
+      return {
+        path: item.path,
+        name: item.name || name,
+        ext: item.ext || ext,
+        lastModified: item.lastModified,
+      };
+    });
     // eslint-disable-next-line no-console
     console.log('[media-browser] items:', allItems);
     renderGrid();
@@ -267,7 +261,16 @@ async function loadFolder() {
     errEl.textContent = `Error: ${err.message}`;
     gridArea.appendChild(errEl);
   }
-}
+};
+
+const navigateTo = (path) => {
+  currentPath = path;
+  selectedItems.clear();
+  searchEl.value = '';
+  searchVal = '';
+  updateSelBar();
+  loadFolder();
+};
 
 // ── Event listeners ────────────────────────────────────────────────────────
 
@@ -344,12 +347,13 @@ viewListBtn.addEventListener('click', () => {
   renderGrid();
 });
 
+// ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   const { context, actions } = await DA_SDK;
   daActions = actions;
   daOrg = context.org || 'peterstolmar-vml';
   daRepo = context.repo || 'eds';
   // eslint-disable-next-line no-console
-  console.log('[media-browser] context:', context);
+  console.log('[media-browser] context:', JSON.stringify(context));
   loadFolder();
 })();
