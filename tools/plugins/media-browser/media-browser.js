@@ -81,8 +81,7 @@ const updateSelBar = () => {
   }
 };
 
-const buildImageHtml = (url, alt) =>
-  `<p><picture><source srcset="${url}"><img src="${url}" alt="${alt}"></picture></p>`;
+const buildImageHtml = (url, alt) => `<p><picture><source srcset="${url}"><img src="${url}" alt="${alt}"></picture></p>`;
 
 const openInsertModal = (item) => {
   activeInsertItem = item;
