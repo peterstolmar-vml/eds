@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Author Toolkit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:,">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { display: flex; min-height: 100%; min-width: 100%; }
+      body {
+        display: flex; flex-direction: column;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 13px; min-height: 100%; min-width: 100%;
+        background: #f5f4fe; color: #1a1a2e;
+      }
+
+      /* ── Tabs ── */
+      .tabs {
+        display: flex; border-bottom: 2px solid #e8e7ff;
+        background: #fff; flex-shrink: 0;
+      }
+      .tab {
+        flex: 1; padding: 11px 6px; cursor: pointer; text-align: center;
+        font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.02em;
+        border-bottom: 3px solid transparent; margin-bottom: -2px;
+        transition: color 0.15s, border-color 0.15s;
+      }
+      .tab.active { color: #7155fa; border-bottom-color: #7155fa; }
+      .tab .tab-icon { display: block; font-size: 18px; margin-bottom: 2px; }
+
+      /* ── Panels ── */
+      .panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+      .panel.active { display: flex; }
+      .scroll { flex: 1; overflow-y: auto; padding: 14px 12px 70px; }
+
+      /* ── Section headers ── */
+      .section-header {
+        font-size: 10px; font-weight: 800; letter-spacing: 0.08em;
+        color: #aaa; text-transform: uppercase; margin: 16px 0 8px;
+      }
+      .section-header:first-child { margin-top: 0; }
+
+      /* ── Quote styles ── */
+      .quote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .quote-card {
+        border-radius: 10px; padding: 12px; cursor: pointer;
+        border: 2px solid transparent; transition: all 0.15s;
+        background: #fff; display: flex; flex-direction: column; gap: 6px;
+      }
+      .quote-card:hover { border-color: #7155fa; box-shadow: 0 2px 8px rgba(113,85,250,0.15); }
+      .quote-card .label {
+        font-size: 10px; font-weight: 800; color: #aaa;
+        letter-spacing: 0.06em; text-transform: uppercase;
+      }
+      .preview-pullquote {
+        border-left: 4px solid #7155fa; padding: 6px 8px;
+        font-style: italic; font-size: 11px; color: #333; background: #f8f8ff;
+        border-radius: 0 6px 6px 0;
+      }
+      .preview-blockquote {
+        background: linear-gradient(135deg, #1a1a2e, #2e1a4a);
+        color: #fff; border-radius: 8px; padding: 8px 10px;
+        font-size: 11px; font-style: italic;
+      }
+      .preview-callout {
+        border: 1px solid #f0e0ff; background: #fdf6ff;
+        border-radius: 8px; padding: 8px 10px; font-size: 11px;
+        border-top: 3px solid #b539c8;
+      }
+      .preview-editorial {
+        font-size: 16px; font-weight: 800; color: #1a1a2e;
+        line-height: 1.2; letter-spacing: -0.02em;
+        border-bottom: 2px solid #7155fa; padding-bottom: 4px;
+      }
+
+      /* ── Kerning controls ── */
+      .kern-row {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+      }
+      .kern-label { font-size: 12px; font-weight: 600; flex: 1; color: #444; }
+      .kern-val {
+        font-size: 11px; font-family: monospace; color: #7155fa;
+        width: 44px; text-align: right;
+      }
+      input[type=range] {
+        flex: 1; accent-color: #7155fa; cursor: pointer;
+      }
+      .kern-preview {
+        background: #fff; border: 1px solid #e8e7ff; border-radius: 8px;
+        padding: 10px 12px; margin-bottom: 10px; font-size: 14px;
+        color: #1a1a2e; line-height: 1.5; min-height: 40px;
+        word-break: break-all;
+      }
+      .kern-preview.empty { color: #bbb; font-style: italic; font-size: 12px; }
+
+      /* ── Buttons strip ── */
+      .btn-strip { display: flex; flex-direction: column; gap: 8px; }
+      .action-btn {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 14px; border-radius: 10px; border: none; cursor: pointer;
+        font-size: 13px; font-weight: 600; text-align: left;
+        transition: opacity 0.15s, transform 0.1s;
+      }
+      .action-btn:hover { opacity: 0.85; transform: translateX(2px); }
+      .action-btn:active { transform: scale(0.98); }
+      .action-btn .btn-icon { font-size: 20px; flex-shrink: 0; }
+      .action-btn .btn-desc { font-size: 10px; font-weight: 400; color: rgba(0,0,0,0.5); margin-top: 1px; }
+      .ab-quote { background: linear-gradient(95deg, #f0eeff, #e8e7ff); color: #5533cc; }
+      .ab-validate { background: linear-gradient(95deg, #e8fff2, #d4fce8); color: #007a40; }
+      .ab-highlight { background: linear-gradient(95deg, #fff8e1, #ffedb0); color: #7a5c00; }
+      .ab-tone { background: linear-gradient(95deg, #ffe8f5, #ffd0ec); color: #8a0050; }
+      .ab-wordcount { background: linear-gradient(95deg, #e8f4ff, #d4e8ff); color: #003f8a; }
+
+      /* ── Highlight color picker ── */
+      .hl-row {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+      }
+      .hl-swatch {
+        width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+        border: 3px solid transparent; transition: border-color 0.15s;
+        flex-shrink: 0;
+      }
+      .hl-swatch.active { border-color: #333; }
+      .hl-label { font-size: 12px; color: #555; flex: 1; }
+
+      /* ── Validate status ── */
+      .validate-result {
+        margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+        font-size: 12px; font-weight: 600; display: none;
+      }
+      .validate-result.pass { background: #e8fff2; color: #007a40; border: 1px solid #a0e8c0; display: block; }
+      .validate-result.fail { background: #fff0f0; color: #c00; border: 1px solid #f0b0b0; display: block; }
+
+      /* ── Tone Analyzer (the big feature) ── */
+      .tone-meter-wrap { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #f0dcff; }
+      .tone-label { font-size: 11px; font-weight: 700; color: #555; margin-bottom: 6px; }
+      .tone-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+      .tone-name { font-size: 11px; color: #444; width: 72px; flex-shrink: 0; }
+      .tone-bar-bg { flex: 1; height: 8px; background: #f0eeff; border-radius: 4px; overflow: hidden; }
+      .tone-bar-fill {
+        height: 100%; border-radius: 4px;
+        background: linear-gradient(90deg, #7155fa, #b539c8);
+        transition: width 0.5s cubic-bezier(.4,0,.2,1);
+      }
+      .tone-pct { font-size: 10px; font-family: monospace; color: #7155fa; width: 30px; text-align: right; }
+      .tone-badge {
+        display: inline-block; padding: 2px 10px; border-radius: 12px;
+        font-size: 11px; font-weight: 700;
+      }
+      .tone-hint { font-size: 11px; color: #888; margin-top: 4px; line-height: 1.5; }
+      .tone-cta {
+        display: block; width: 100%; padding: 8px; border-radius: 8px; border: none;
+        background: linear-gradient(95deg, #b539c8, #7155fa);
+        color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+        margin-top: 8px;
+      }
+
+      /* ── Footer bar ── */
+      .footer-bar {
+        position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e8e7ff;
+        padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+      }
+      .footer-status { flex: 1; font-size: 11px; color: #888; }
+      .footer-status.ok { color: #007a40; font-weight: 600; }
+      .footer-status.err { color: #c00; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-tab="insert">
+        <span class="tab-icon">✍️</span>Insert
+      </div>
+      <div class="tab" data-tab="format">
+        <span class="tab-icon">🎨</span>Format
+      </div>
+      <div class="tab" data-tab="validate">
+        <span class="tab-icon">🛡️</span>Validate
+      </div>
+      <div class="tab" data-tab="tone">
+        <span class="tab-icon">🔊</span>Tone
+      </div>
+    </div>
+
+    <!-- INSERT panel -->
+    <div class="panel active" id="panel-insert">
+      <div class="scroll">
+        <p class="section-header">Quote Styles</p>
+        <div class="quote-grid" id="quote-grid">
+
+          <div class="quote-card" data-quote="pullquote">
+            <span class="label">Pull Quote</span>
+            <div class="preview-pullquote">"Great copy starts with great structure."</div>
+          </div>
+
+          <div class="quote-card" data-quote="blockquote">
+            <span class="label">Dark Block</span>
+            <div class="preview-blockquote">"Bold ideas deserve bold design."</div>
+          </div>
+
+          <div class="quote-card" data-quote="callout">
+            <span class="label">Brand Callout</span>
+            <div class="preview-callout">
+              <strong>💡 Key Insight</strong><br>Selected text becomes a branded highlight box.
+            </div>
+          </div>
+
+          <div class="quote-card" data-quote="editorial">
+            <span class="label">Editorial Drop</span>
+            <div class="preview-editorial">Words that stop the scroll.</div>
+          </div>
+
+        </div>
+
+        <p class="section-header">Quick Insert</p>
+        <div class="btn-strip">
+          <button class="action-btn ab-quote" id="btn-divider">
+            <span class="btn-icon">—</span>
+            <div><div>Section Divider</div><div class="btn-desc">Inserts a styled HR / section break</div></div>
+          </button>
+          <button class="action-btn ab-wordcount" id="btn-cta">
+            <span class="btn-icon">🔗</span>
+            <div><div>CTA Button</div><div class="btn-desc">Branded call-to-action block</div></div>
+          </button>
+        </div>
+      </div>
+      <div class="footer-bar">
+        <span class="footer-status" id="insert-status">Select a style above — uses selected text or placeholder</span>
+      </div>
+    </div>
+
+    <!-- FORMAT panel -->
+    <div class="panel" id="panel-format">
+      <div class="scroll">
+
+        <p class="section-header">Highlight Color</p>
+        <div class="hl-row">
+          <div class="hl-swatch active" data-color="#FFE066" style="background:#FFE066;" title="Yellow"></div>
+          <div class="hl-swatch" data-color="#FF6B6B" style="background:#FF6B6B;" title="Red"></div>
+          <div class="hl-swatch" data-color="#69DB7C" style="background:#69DB7C;" title="Green"></div>
+          <div class="hl-swatch" data-color="#74C0FC" style="background:#74C0FC;" title="Blue"></div>
+          <div class="hl-swatch" data-color="#E599F7" style="background:#E599F7;" title="Purple"></div>
+          <span class="hl-label" id="hl-label">Yellow selected</span>
+        </div>
+        <button class="action-btn ab-highlight" id="btn-highlight">
+          <span class="btn-icon">🖊</span>
+          <div><div>Apply Highlight</div><div class="btn-desc">Wraps selection in a &lt;mark&gt; with chosen color</div></div>
+        </button>
+
+        <p class="section-header" style="margin-top:20px">Letter Spacing / Kerning</p>
+        <div class="kern-preview empty" id="kern-preview">Select text in the editor, then adjust below…</div>
+        <div class="kern-row">
+          <span class="kern-label">Letter Spacing</span>
+          <input type="range" id="kern-ls" min="-5" max="20" step="1" value="0" />
+          <span class="kern-val" id="kern-ls-val">0px</span>
+        </div>
+        <div class="kern-row">
+          <span class="kern-label">Word Spacing</span>
+          <input type="range" id="kern-ws" min="-4" max="20" step="1" value="0" />
+          <span class="kern-val" id="kern-ws-val">0px</span>
+        </div>
+        <button class="action-btn ab-quote" id="btn-apply-kern" style="margin-top:4px">
+          <span class="btn-icon">Aa</span>
+          <div><div>Apply Spacing</div><div class="btn-desc">Wraps selection in a styled &lt;span&gt;</div></div>
+        </button>
+
+      </div>
+      <div class="footer-bar">
+        <span class="footer-status" id="format-status">Select text in the editor first</span>
+      </div>
+    </div>
+
+    <!-- VALIDATE panel -->
+    <div class="panel" id="panel-validate">
+      <div class="scroll">
+        <p class="section-header">Claim Validator</p>
+        <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6">
+          Highlight a phrase in the editor, then click <strong>Validate Claim</strong>.
+          The validator checks the selected phrase against compliance rules.
+          Phrases that pass are confirmed; failing phrases are struck through and links disabled.
+        </p>
+
+        <button class="action-btn ab-validate" id="btn-validate">
+          <span class="btn-icon">🛡️</span>
+          <div><div>Validate Claim</div><div class="btn-desc">Checks selected text via compliance API</div></div>
+        </button>
+
+        <div class="validate-result" id="validate-result"></div>
+
+        <p class="section-header" style="margin-top:20px">Compliance Rules</p>
+        <div style="background:#fff;border-radius:8px;padding:12px;border:1px solid #f0e8ff;font-size:12px;color:#555;line-height:1.7">
+          <div>✅ Exactly <strong>4 words</strong> → claim passes</div>
+          <div>❌ Other word count → struck through, links disabled</div>
+          <div style="margin-top:8px;font-size:11px;color:#aaa">
+            Simulates a brand compliance API gate. In production, connect to your legal review service.
+          </div>
+        </div>
+
+        <p class="section-header" style="margin-top:20px">Bulk Validate Page</p>
+        <button class="action-btn ab-validate" id="btn-bulk-validate">
+          <span class="btn-icon">📋</span>
+          <div><div>Scan Entire Page</div><div class="btn-desc">Highlights all flagged phrases on the page (demo)</div></div>
+        </button>
+        <div id="bulk-result" style="margin-top:8px;font-size:12px;color:#888"></div>
+
+      </div>
+      <div class="footer-bar">
+        <span class="footer-status" id="validate-status">Select a phrase to validate</span>
+      </div>
+    </div>
+
+    <!-- TONE panel -->
+    <div class="panel" id="panel-tone">
+      <div class="scroll">
+        <p class="section-header">Brand Tone Analyzer</p>
+        <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6">
+          Select text in the editor and analyze its tone against your brand voice targets.
+          Get instant feedback and a one-click rewrite suggestion.
+        </p>
+
+        <button class="action-btn ab-tone" id="btn-analyze-tone">
+          <span class="btn-icon">🔊</span>
+          <div><div>Analyze Tone</div><div class="btn-desc">Scores selected text on 5 brand voice dimensions</div></div>
+        </button>
+
+        <div id="tone-results" style="display:none;margin-top:12px">
+          <div class="tone-meter-wrap">
+            <div class="tone-label">Tone profile vs. brand targets</div>
+            <div id="tone-bars"></div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:#555;font-weight:600">Overall:</span>
+              <span class="tone-badge" id="tone-overall"></span>
+            </div>
+          </div>
+          <div id="tone-suggestions" class="tone-hint"></div>
+          <button class="tone-cta" id="btn-rewrite">✨ Rewrite for Brand Voice</button>
+        </div>
+
+        <p class="section-header" style="margin-top:20px">Target Brand Voice</p>
+        <div style="background:#fff;border-radius:8px;padding:12px;border:1px solid #f0e8ff">
+          <div id="brand-targets"></div>
+        </div>
+
+      </div>
+      <div class="footer-bar">
+        <span class="footer-status" id="tone-status">Select text, then click Analyze Tone</span>
+      </div>
+    </div>
+
+    <script src="https://da.live/nx/utils/sdk.js" type="module"></script>
+    <script src="/tools/plugins/author-toolkit/author-toolkit.js" type="module"></script>
+  </body>
+</html>
+
