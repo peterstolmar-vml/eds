@@ -238,18 +238,34 @@ async function loadFolder() {
   buildBreadcrumb();
 
   const url = `${BASE_ORIGIN}/${daOrg}/${daRepo}${currentPath}`;
+  // eslint-disable-next-line no-console
+  console.log('[media-browser] fetching:', url, 'org:', daOrg, 'repo:', daRepo);
   try {
     const res = await daActions.daFetch(url, { headers: { Accept: 'application/json' } });
+    // eslint-disable-next-line no-console
+    console.log('[media-browser] response status:', res.status, res.headers.get('content-type'));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const text = await res.text();
+    // eslint-disable-next-line no-console
+    console.log('[media-browser] raw response:', text.slice(0, 200));
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Not JSON: ${text.slice(0, 80)}`);
+    }
     allItems = Array.isArray(data) ? data : [];
+    // eslint-disable-next-line no-console
+    console.log('[media-browser] items:', allItems);
     renderGrid();
-  } catch {
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[media-browser] error:', err);
     gridArea.textContent = '';
-    const err = document.createElement('div');
-    err.className = 'empty';
-    err.textContent = 'Could not load folder. Check that /media exists.';
-    gridArea.appendChild(err);
+    const errEl = document.createElement('div');
+    errEl.className = 'empty';
+    errEl.textContent = `Error: ${err.message}`;
+    gridArea.appendChild(errEl);
   }
 }
 
@@ -331,7 +347,9 @@ viewListBtn.addEventListener('click', () => {
 (async () => {
   const { context, actions } = await DA_SDK;
   daActions = actions;
-  daOrg = context.org;
-  daRepo = context.repo;
+  daOrg = context.org || 'peterstolmar-vml';
+  daRepo = context.repo || 'eds';
+  // eslint-disable-next-line no-console
+  console.log('[media-browser] context:', context);
   loadFolder();
 })();
