@@ -4,10 +4,11 @@
 # 
 # <footer>
 
-#   - Type must be one of the types listed below
-#   - <body> and <footer> are optional
-#   - all lowercase short description
-#   - Lists of summaries for complex descriptions
+# Commit format follows Conventional Commits 1.0
+# - Type must be one of the types listed below
+# - <body> and <footer> are optional
+# - all lowercase short description
+# - Lists of summaries for complex descriptions
 # ------------------------------------------------------------------------------
 # COMMIT TYPES:
 #   feat     : A new feature or significant added functionality
@@ -23,7 +24,7 @@
 #   revert   : Reverting a previous commit
 #
 # RULES:
-#   - Append a '!' after the type/scope for BREAKING CHANGES (Bumps MAJOR version).
+#   - Append a '!' after the type/scope for BREAKING CHANGES.
 #   - Write the short description in the imperative mood, lowercase, no trailing period.
 #   - Keep the first line under 72 characters.
 #   - Separate the subject line from the body with a blank line.
