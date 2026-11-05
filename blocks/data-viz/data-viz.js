@@ -24,8 +24,6 @@ const isAuthoringEnv = () => {
   );
 };
 
-// ─── Tiny DOM helper ──────────────────────────────────────────────────────────
-
 const el = (tag, cls, ...children) => {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
@@ -40,8 +38,6 @@ const toTimestamp = (val) => {
   if (!val) return 0;
   return Number.isNaN(Number(val)) ? new Date(val).getTime() : Number(val);
 };
-
-// ─── Data fetcher ─────────────────────────────────────────────────────────────
 
 const fetchData = async (url) => {
   if (!url || url === 'sample') return null;
@@ -63,7 +59,6 @@ const fetchData = async (url) => {
     if (Array.isArray(json.data)) return json.data;
     return json;
   } catch {
-    // CSV fallback
     const lines = text.trim().split(/\r?\n/);
     if (lines.length < 2) return [];
     const headers = lines[0].split(',').map((h) => h.trim());
@@ -76,8 +71,6 @@ const fetchData = async (url) => {
   }
 };
 
-// ─── Three.js loader ──────────────────────────────────────────────────────────
-
 const loadThree = async () => {
   const mod = await import(/* @vite-ignore */ THREE_BASE);
   const { OrbitControls } = await import(
@@ -86,21 +79,17 @@ const loadThree = async () => {
   return { THREE: mod, OrbitControls };
 };
 
-// ─── Tooltip ──────────────────────────────────────────────────────────────────
-
 const buildTooltip = (wrap) => {
   const tip = el('div', 'dv-tooltip');
   tip.hidden = true;
   wrap.append(tip);
-
   const show = (pt, x, y) => {
     tip.innerHTML = '';
     const entries = Object.entries(pt)
       .filter(([k]) => k !== 'pointIdx')
       .slice(0, 6);
     if (entries.length === 0) return;
-    const title = el('strong', null, String(entries[0][1]));
-    tip.append(title);
+    tip.append(el('strong', null, String(entries[0][1])));
     entries.slice(1).forEach(([k, v]) => {
       tip.append(el('span', null, `${k}: ${v}`), document.createElement('br'));
     });
@@ -108,23 +97,19 @@ const buildTooltip = (wrap) => {
     tip.style.top = `${y + 12}px`;
     tip.hidden = false;
   };
-
   const hide = () => { tip.hidden = true; };
   return { show, hide };
 };
 
-// ─── Filter bar ───────────────────────────────────────────────────────────────
-
 const buildFilterBar = (points, cfg, onFilter) => {
   const filterF = cfg.filterField || cfg.labelField;
   if (!filterF) return null;
-
-  const vals = [...new Set(points.map((p) => String(p[filterF] ?? '')).filter(Boolean))];
+  const vals = [...new Set(
+    points.map((p) => String(p[filterF] ?? '')).filter(Boolean),
+  )];
   if (vals.length < 2 || vals.length > 40) return null;
-
   const bar = el('div', 'dv-filter-bar');
   bar.append(el('span', 'dv-filter-label', 'Filter:'));
-
   const sel = document.createElement('select');
   sel.className = 'dv-filter-select';
   const allOpt = document.createElement('option');
@@ -145,15 +130,10 @@ const buildFilterBar = (points, cfg, onFilter) => {
   return bar;
 };
 
-// ─── Authoring toolbar ────────────────────────────────────────────────────────
-
 const buildToolbar = (config, onUpdate) => {
   const toolbar = el('div', 'dv-toolbar');
+  toolbar.append(el('span', 'dv-toolbar-label', '✎ Data Viz'));
 
-  const lbl = el('span', 'dv-toolbar-label', '✎ Data Viz');
-  toolbar.append(lbl);
-
-  // Preset dropdown
   const presetSel = document.createElement('select');
   presetSel.className = 'dv-toolbar-preset';
   PRESETS.forEach((p) => {
@@ -180,15 +160,19 @@ const buildToolbar = (config, onUpdate) => {
   const sep = () => el('span', 'dv-toolbar-sep');
   toolbar.append(sep());
 
-  // Viz type buttons
   [
     ['bar3d', '▦'],
     ['wave', '〜'],
     ['scatter3d', '✦'],
     ['surface', '⛰'],
     ['particles', '✸'],
+    ['chartopotamus', '📡'],
   ].forEach(([type, icon]) => {
-    const btn = el('button', `dv-toolbar-btn${config.vizType === type ? ' active' : ''}`, icon);
+    const btn = el(
+      'button',
+      `dv-toolbar-btn${config.vizType === type ? ' active' : ''}`,
+      icon,
+    );
     btn.title = type;
     btn.dataset.vtype = type;
     btn.addEventListener('click', () => {
@@ -203,7 +187,6 @@ const buildToolbar = (config, onUpdate) => {
 
   toolbar.append(sep());
 
-  // Color scheme buttons
   ['thermal', 'ocean', 'neon', 'monochrome', 'brand'].forEach((scheme) => {
     const btn = el(
       'button',
@@ -237,10 +220,7 @@ const buildToolbar = (config, onUpdate) => {
   return toolbar;
 };
 
-// ─── Main decorator ───────────────────────────────────────────────────────────
-
 export default async function decorate(block) {
-  // Parse authored config from block table rows
   const rawCfg = {};
   block.querySelectorAll(':scope > div').forEach((row) => {
     const cells = row.querySelectorAll(':scope > div');
@@ -251,7 +231,6 @@ export default async function decorate(block) {
     }
   });
 
-  // Resolve preset
   const presetId = rawCfg.preset || PRESETS[0].id;
   const preset = PRESETS.find((p) => p.id === presetId) || PRESETS[0];
 
@@ -270,13 +249,10 @@ export default async function decorate(block) {
 
   block.innerHTML = '';
 
-  // ── Shell ──────────────────────────────────────────────────────────────────
   const shell = el('div', 'data-viz');
-
   const headerBar = el('div', 'dv-header-bar');
   const titleEl = el('p', 'dv-title', config.title || 'Data Visualization');
   const globeControls = el('div', 'dv-globe-controls');
-
   const spinBtn = el('button', 'dv-icon-btn active', '⟳');
   spinBtn.title = 'Pause rotation';
   const resetBtn = el('button', 'dv-icon-btn', '⊙');
@@ -287,11 +263,9 @@ export default async function decorate(block) {
   const canvasWrap = el('div', 'dv-canvas-wrap');
   const loading = el('div', 'dv-loading', 'Loading…');
   canvasWrap.append(loading);
-
   shell.append(headerBar, canvasWrap);
   block.append(shell);
 
-  // ── Three.js ───────────────────────────────────────────────────────────────
   let THREE;
   let OrbitControls;
   try {
@@ -335,14 +309,12 @@ export default async function decorate(block) {
   new ResizeObserver(resize).observe(canvasWrap);
   resize();
 
-  const resetView = () => {
+  resetBtn.addEventListener('click', () => {
     camera.position.set(4, 3, DEFAULT_CAMERA_Z);
     camera.lookAt(0, 0, 0);
     orbitControls.target.set(0, 0, 0);
     orbitControls.update();
-  };
-
-  resetBtn.addEventListener('click', resetView);
+  });
 
   let spinning = true;
   spinBtn.addEventListener('click', () => {
@@ -352,7 +324,6 @@ export default async function decorate(block) {
     spinBtn.title = spinning ? 'Pause rotation' : 'Resume rotation';
   });
 
-  // ── Raycaster ──────────────────────────────────────────────────────────────
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let pointerDownPos = null;
@@ -363,7 +334,6 @@ export default async function decorate(block) {
     pointerDownPos = { x: e.clientX, y: e.clientY };
   });
 
-  // ── Scene group ────────────────────────────────────────────────────────────
   let vizGroup = null;
   let waveState = null;
   let particleState = null;
@@ -375,7 +345,6 @@ export default async function decorate(block) {
   let timeBar = null;
   let filterBar = null;
 
-  // ── Animate loop ───────────────────────────────────────────────────────────
   let wavePhase = 0;
   const animate = () => {
     requestAnimationFrame(animate);
@@ -387,7 +356,7 @@ export default async function decorate(block) {
     if (config.animate && config.vizType === 'wave' && waveState) {
       wavePhase += 0.015 * (config.animSpeed || 1);
       const {
-        geo, positions, colors, points: wpts, cfg, scheme,
+        geo, positions, colors, points: wpts, cfg, scheme, getColorAt,
       } = waveState;
       const xF = cfg.xField || 'x';
       const zF = cfg.zField || 'z';
@@ -405,11 +374,11 @@ export default async function decorate(block) {
         const nx = (((Number.parseFloat(pt[xF]) || 0) - xMin) / xRange) * 4 - 2;
         const nz = (((Number.parseFloat(pt[zF]) || 0) - zMin) / zRange) * 4 - 2;
         const baseY = Number.parseFloat(pt[yF]) || 0;
-        const ny = baseY + Math.sin(nx * 1.5 + wavePhase) * 0.25
+        const ny = baseY
+          + Math.sin(nx * 1.5 + wavePhase) * 0.25
           * Math.cos(nz * 1.5 + wavePhase * 0.7);
         positions[i * 3 + 1] = ny;
         const norm = (ny + 1) / 2;
-        const { getColorAt } = waveState;
         if (getColorAt) {
           const col = getColorAt(scheme, norm);
           const rgb = col.match(/\d+/g).map(Number);
@@ -438,7 +407,6 @@ export default async function decorate(block) {
   };
   animate();
 
-  // ── Render viz ─────────────────────────────────────────────────────────────
   const renderViz = async (cfg) => {
     if (vizGroup) scene.remove(vizGroup);
     if (timeBar) timeBar.remove();
@@ -447,6 +415,27 @@ export default async function decorate(block) {
     waveState = null;
     particleState = null;
     wavePhase = 0;
+
+    // ── Chartopotamus image mode ───────────────────────────────────────────────
+    if (cfg.vizType === 'chartopotamus') {
+      loading.style.display = 'none';
+      canvasWrap.querySelectorAll('img, .dv-charto-placeholder').forEach((n) => n.remove());
+      if (cfg.embedurl) {
+        const img = document.createElement('img');
+        img.src = cfg.embedurl;
+        img.alt = cfg.title || 'Chartopotamus chart';
+        img.style.cssText = 'width:100%;border-radius:8px;display:block;';
+        canvasWrap.append(img);
+      } else {
+        const msg = el(
+          'div',
+          'dv-charto-placeholder dv-loading',
+          '📡 Use Configure → Chartopotamus to generate a chart',
+        );
+        canvasWrap.append(msg);
+      }
+      return;
+    }
 
     const currentPreset = PRESETS.find((p) => p.id === cfg.presetId) || PRESETS[0];
     let points = currentPreset.sampleData;
@@ -457,62 +446,56 @@ export default async function decorate(block) {
 
     allPoints = points.map((p, i) => ({ ...p, pointIdx: i }));
     filteredPoints = [...allPoints];
-
     titleEl.textContent = cfg.title || currentPreset.config.title || 'Data Visualization';
 
     const buildVizGroup = (pts) => {
-      let result;
       if (cfg.vizType === 'bar3d') {
-        result = renderBar3d(pts, cfg, cfg.colorScheme, THREE);
-        return { group: result, state: null };
+        return { group: renderBar3d(pts, cfg, cfg.colorScheme, THREE), state: null };
       }
       if (cfg.vizType === 'wave') {
-        result = renderWave(pts, cfg, cfg.colorScheme, THREE, 0);
+        const result = renderWave(pts, cfg, cfg.colorScheme, THREE, 0);
         return { group: result.group, state: result };
       }
       if (cfg.vizType === 'scatter3d') {
-        result = renderScatter3d(pts, cfg, cfg.colorScheme, THREE);
-        return { group: result, state: null };
+        return { group: renderScatter3d(pts, cfg, cfg.colorScheme, THREE), state: null };
       }
       if (cfg.vizType === 'surface') {
-        result = renderSurface(pts, cfg, cfg.colorScheme, THREE);
-        return { group: result, state: null };
+        return { group: renderSurface(pts, cfg, cfg.colorScheme, THREE), state: null };
       }
       if (cfg.vizType === 'particles') {
-        result = renderParticles(pts, cfg, cfg.colorScheme, THREE, 0);
+        const result = renderParticles(pts, cfg, cfg.colorScheme, THREE, 0);
         return { group: result.group, state: result };
       }
-      result = renderBar3d(pts, cfg, cfg.colorScheme, THREE);
-      return { group: result, state: null };
+      return { group: renderBar3d(pts, cfg, cfg.colorScheme, THREE), state: null };
     };
 
     const { group, state } = buildVizGroup(filteredPoints);
     vizGroup = group;
-    if (cfg.vizType === 'wave') {
+
+    if (cfg.vizType === 'wave' && state) {
       const { getColorAt } = await import('./data-viz-presets.js');
-      waveState = state ? { ...state, getColorAt } : null;
+      waveState = { ...state, getColorAt };
     }
     if (cfg.vizType === 'particles') particleState = state;
     scene.add(vizGroup);
 
-    // ── Filter bar ───────────────────────────────────────────────────────────
     filterBar = buildFilterBar(allPoints, cfg, (filterVal) => {
       filteredPoints = filterVal
-        ? allPoints.filter((p) => String(p[cfg.filterField || cfg.labelField] ?? '') === filterVal)
+        ? allPoints.filter(
+          (p) => String(p[cfg.filterField || cfg.labelField] ?? '') === filterVal,
+        )
         : [...allPoints];
       const rebuilt = buildVizGroup(filteredPoints);
       if (vizGroup) scene.remove(vizGroup);
       vizGroup = rebuilt.group;
-      if (cfg.vizType === 'wave') {
-        // eslint-disable-next-line no-use-before-define
-        waveState = rebuilt.state ? { ...rebuilt.state, getColorAt: waveState?.getColorAt } : null;
+      if (cfg.vizType === 'wave' && rebuilt.state) {
+        waveState = { ...rebuilt.state, getColorAt: waveState?.getColorAt };
       }
       if (cfg.vizType === 'particles') particleState = rebuilt.state;
       scene.add(vizGroup);
     });
-    if (filterBar) shell.insertBefore(filterBar, shell.querySelector('.dv-timebar') || null);
+    if (filterBar) shell.insertBefore(filterBar, timeBar);
 
-    // ── Time scrub ───────────────────────────────────────────────────────────
     const timeF = cfg.timeField;
     const hasTime = timeF && allPoints.some((p) => p[timeF]);
     if (hasTime) {
@@ -580,14 +563,12 @@ export default async function decorate(block) {
       shell.append(timeBar);
     }
 
-    // ── Pointer interactions ─────────────────────────────────────────────────
     const onPointerUp = (e) => {
       if (!pointerDownPos) return;
       const dx = e.clientX - pointerDownPos.x;
       const dy = e.clientY - pointerDownPos.y;
       pointerDownPos = null;
       if (Math.sqrt(dx * dx + dy * dy) > 5) return;
-
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -602,7 +583,6 @@ export default async function decorate(block) {
           e.clientX - canvasWrap.getBoundingClientRect().left,
           e.clientY - canvasWrap.getBoundingClientRect().top,
         );
-        // Highlight selected mesh
         vizGroup.children.forEach((mesh) => {
           if (!mesh.material) return;
           mesh.material.emissiveIntensity = 0.15;
@@ -632,11 +612,9 @@ export default async function decorate(block) {
     loading.style.display = 'none';
   };
 
-  // ── Authoring toolbar ──────────────────────────────────────────────────────
   if (isAuthoringEnv()) {
     const toolbar = buildToolbar(config, (updated) => {
       Object.assign(config, updated);
-      // Sync toolbar active states
       toolbar.querySelectorAll('.dv-toolbar-btn[data-vtype]').forEach((b) => {
         b.classList.toggle('active', b.dataset.vtype === config.vizType);
       });
