@@ -1,0 +1,356 @@
+/* ── Earth Viz block ─────────────────────────────────────────── */
+.earth-viz {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+.ev-stage {
+  display: flex;
+  flex: 1;
+  min-height: 520px;
+  position: relative;
+}
+
+.ev-canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.ev-canvas-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Side panel ──────────────────────────────────────────────── */
+.ev-panel {
+  width: 280px;
+  flex-shrink: 0;
+  background: #0d0d1a;
+  border-left: 1px solid #1e2a4a;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease, opacity 0.25s ease;
+  overflow: hidden;
+}
+
+.ev-panel.collapsed {
+  width: 0;
+  opacity: 0;
+  border-left: none;
+}
+
+.ev-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #111827;
+  border-bottom: 1px solid #1e2a4a;
+  flex-shrink: 0;
+}
+
+.ev-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7eb8f7;
+  margin: 0;
+}
+
+.ev-panel-count {
+  font-size: 11px;
+  color: #5a7a9a;
+}
+
+.ev-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #1e3a5a #0d0d1a;
+}
+
+.ev-panel-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ev-panel-list::-webkit-scrollbar-track {
+  background: #0d0d1a;
+}
+
+.ev-panel-list::-webkit-scrollbar-thumb {
+  background: #1e3a5a;
+  border-radius: 3px;
+}
+
+.ev-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #0f1525;
+  transition: background 0.12s;
+}
+
+.ev-panel-row:hover {
+  background: #111827;
+}
+
+.ev-panel-row.selected {
+  background: #1a2a4a;
+  border-left: 3px solid #7eb8f7;
+  padding-left: 9px;
+}
+
+.ev-panel-mag {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.ev-panel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ev-panel-label {
+  font-size: 11px;
+  color: #c8d8e8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ev-panel-time {
+  font-size: 10px;
+  color: #5a7a9a;
+  margin-top: 2px;
+}
+
+/* Detail card */
+.ev-detail {
+  padding: 12px;
+  background: #111827;
+  border-top: 1px solid #1e2a4a;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #a0b8cc;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.ev-detail h4 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #7eb8f7;
+}
+
+.ev-detail-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ev-detail-key {
+  color: #5a7a9a;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.ev-detail-val {
+  color: #c8d8e8;
+  overflow-wrap: break-word;
+}
+
+/* ── Time scrub ──────────────────────────────────────────────── */
+.ev-timebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #080c14;
+  border-top: 1px solid #1e2a4a;
+  flex-shrink: 0;
+}
+
+.ev-timebar-play {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #2a4a7a;
+  background: #111827;
+  color: #7eb8f7;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.ev-timebar-play:hover {
+  background: #1a2a4a;
+}
+
+.ev-timebar-slider {
+  flex: 1;
+  accent-color: #7eb8f7;
+  cursor: pointer;
+}
+
+.ev-timebar-label {
+  font-size: 10px;
+  color: #5a7a9a;
+  white-space: nowrap;
+  min-width: 120px;
+  text-align: right;
+}
+
+/* ── Authoring toolbar ───────────────────────────────────────── */
+.ev-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #d0d0d0;
+  border-top: 2px solid #aaa;
+  flex-wrap: wrap;
+}
+
+.ev-toolbar-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #555;
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ev-toolbar-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid #999;
+  border-radius: 2px;
+  background: #e8e8e8;
+  cursor: pointer;
+  color: #333;
+  transition: background 0.12s;
+}
+
+.ev-toolbar-btn:hover {
+  background: #d0d0d0;
+}
+
+.ev-toolbar-btn.active {
+  background: #5a5a5a;
+  color: #fff;
+  border-color: #444;
+}
+
+.ev-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: #bbb;
+  margin: 0 2px;
+}
+
+.ev-toolbar-pencil {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #888;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 100%);
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.ev-toolbar-pencil:hover {
+  background: linear-gradient(180deg, #444 0%, #222 100%);
+}
+
+/* ── Panel toggle button (on globe edge) ─────────────────────── */
+.ev-panel-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #2a4a7a;
+  background: rgb(8 12 20 / 80%);
+  color: #7eb8f7;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.ev-panel-toggle:hover {
+  background: rgb(26 42 74 / 90%);
+}
+
+/* ── Loading / error overlays ────────────────────────────────── */
+.ev-loading,
+.ev-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7eb8f7;
+  font-size: 13px;
+  background: rgb(0 0 0 / 70%);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.ev-error {
+  color: #f87171;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (width <= 768px) {
+  .ev-stage {
+    flex-direction: column;
+  }
+
+  .ev-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #1e2a4a;
+    max-height: 220px;
+  }
+
+  .ev-panel.collapsed {
+    width: 100%;
+    max-height: 0;
+    opacity: 0;
+  }
+
+  .ev-panel-toggle {
+    display: none;
+  }
+}
