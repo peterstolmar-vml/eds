@@ -95,8 +95,15 @@ const loadThree = async () => {
 
 const buildFallbackGlobe = (THREE) => {
   const group = new THREE.Group();
-  const oceanGeo = new THREE.SphereGeometry(GLOBE_RADIUS, FALLBACK_SEGMENTS, FALLBACK_SEGMENTS);
-  group.add(new THREE.Mesh(oceanGeo, new THREE.MeshPhongMaterial({ color: OCEAN_COLOR })));
+  const oceanGeo = new THREE.SphereGeometry(
+    GLOBE_RADIUS,
+    FALLBACK_SEGMENTS,
+    FALLBACK_SEGMENTS,
+  );
+  group.add(new THREE.Mesh(
+    oceanGeo,
+    new THREE.MeshPhongMaterial({ color: OCEAN_COLOR }),
+  ));
 
   const continents = [
     { lat: [25, 70], lng: [-170, -50] },
@@ -139,7 +146,6 @@ const buildTexturedGlobe = (mode, THREE) => new Promise((resolve) => {
     ));
     return;
   }
-
   const url = TEXTURES[mode] || TEXTURES.color;
   new THREE.TextureLoader().load(
     url,
@@ -170,7 +176,7 @@ const buildPoints = (points, config, THREE) => {
   const opacity = Number.parseFloat(config['point-opacity']) || DEFAULT_POINT_OPACITY;
   const customColor = config['point-color'];
 
-  points.forEach((pt, idx) => {
+  points.forEach((pt) => {
     const lat = Number.parseFloat(pt[latF]);
     const lng = Number.parseFloat(pt[lngF]);
     if (Number.isNaN(lat) || Number.isNaN(lng)) return;
@@ -189,14 +195,14 @@ const buildPoints = (points, config, THREE) => {
       mat,
     );
     mesh.position.copy(pos);
-    mesh.userData = { idx, point: pt };
+    mesh.userData = { idx: pt.pointIdx, point: pt };
     group.add(mesh);
   });
 
   return group;
 };
 
-// ─── Sort helper ──────────────────────────────────────────────────────────────
+// ─── Sort ─────────────────────────────────────────────────────────────────────
 
 const sortPoints = (points, sortKey, timeF, magF) => {
   const sorted = [...points];
@@ -205,16 +211,20 @@ const sortPoints = (points, sortKey, timeF, magF) => {
   } else if (sortKey === 'time-asc') {
     sorted.sort((a, b) => toTimestamp(a[timeF]) - toTimestamp(b[timeF]));
   } else if (sortKey === 'mag-desc') {
-    sorted.sort((a, b) => (Number.parseFloat(b[magF]) || 0) - (Number.parseFloat(a[magF]) || 0));
+    sorted.sort(
+      (a, b) => (Number.parseFloat(b[magF]) || 0) - (Number.parseFloat(a[magF]) || 0),
+    );
   } else if (sortKey === 'mag-asc') {
-    sorted.sort((a, b) => (Number.parseFloat(a[magF]) || 0) - (Number.parseFloat(b[magF]) || 0));
+    sorted.sort(
+      (a, b) => (Number.parseFloat(a[magF]) || 0) - (Number.parseFloat(b[magF]) || 0),
+    );
   }
   return sorted;
 };
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
-const buildPanel = (allPoints, config, onSelect, onSortChange) => {
+const buildPanel = (allPoints, config, onSelect) => {
   const labelF = config['label-field'] || 'place';
   const timeF = config['time-field'] || 'time';
   const magF = config['magnitude-field'] || 'mag';
@@ -222,17 +232,13 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
 
   let currentSort = 'time-desc';
   let currentPage = 0;
-  let expandedIdx = -1;
 
   const panel = el('div', 'ev-panel');
-
-  // Header row: title + count + sort + collapse tab
   const header = el('div', 'ev-panel-header');
   const titleEl = el('p', 'ev-panel-title', title);
   const countEl = el('span', 'ev-panel-count', `${allPoints.length} events`);
   header.append(titleEl, countEl);
 
-  // Sort bar
   const sortBar = el('div', 'ev-sort-bar');
   const sortLbl = el('span', 'ev-sort-label', 'Sort:');
   const sortSel = el('select', 'ev-sort-select');
@@ -255,15 +261,22 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
   const renderList = () => {
     list.innerHTML = '';
     pagination.innerHTML = '';
-    expandedIdx = -1;
 
-    const sorted = sortPoints(allPoints, currentSort, timeF, magF);
+    const sorted = sortPoints(
+      allPoints,
+      currentSort,
+      timeF,
+      magF,
+    );
     const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
     currentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
-    const pageItems = sorted.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+    const pageItems = sorted.slice(
+      currentPage * PAGE_SIZE,
+      (currentPage + 1) * PAGE_SIZE,
+    );
 
     pageItems.forEach((pt) => {
-      const globalIdx = pt.__idx;
+      const globalIdx = pt.pointIdx;
       const mag = Number.parseFloat(pt[magF]) || 0;
 
       const row = el('div', 'ev-panel-row');
@@ -273,7 +286,11 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
       magDot.style.background = magColor(mag);
 
       const info = el('div', 'ev-panel-info');
-      const lbl = el('div', 'ev-panel-label', pt[labelF] || `${pt.latitude ?? ''}, ${pt.longitude ?? ''}`);
+      const lbl = el(
+        'div',
+        'ev-panel-label',
+        pt[labelF] || `${pt.latitude ?? ''}, ${pt.longitude ?? ''}`,
+      );
       const time = el('div', 'ev-panel-time', formatTs(pt[timeF]));
       info.append(lbl, time);
 
@@ -284,6 +301,18 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
       const detail = el('div', 'ev-detail');
       detail.hidden = true;
 
+      const known = new Set([
+        labelF,
+        timeF,
+        magF,
+        'latitude',
+        'longitude',
+        'lat',
+        'lng',
+        'depth',
+        'pointIdx',
+      ]);
+
       const detailFields = [
         ['Magnitude', pt[magF]],
         ['Location', pt[labelF]],
@@ -292,8 +321,6 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
         ['Latitude', pt.latitude ?? pt.lat],
         ['Longitude', pt.longitude ?? pt.lng],
       ];
-
-      const known = new Set([labelF, timeF, magF, 'latitude', 'longitude', 'lat', 'lng', 'depth', '__idx']);
       Object.entries(pt).forEach(([k, v]) => {
         if (!known.has(k)) detailFields.push([k, v]);
       });
@@ -301,13 +328,15 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
       detailFields.forEach(([k, v]) => {
         if (!v && v !== 0) return;
         const drow = el('div', 'ev-detail-row');
-        drow.append(el('span', 'ev-detail-key', k), el('span', 'ev-detail-val', String(v)));
+        drow.append(
+          el('span', 'ev-detail-key', k),
+          el('span', 'ev-detail-val', String(v)),
+        );
         detail.append(drow);
       });
 
       row.addEventListener('click', () => {
         const isOpen = !detail.hidden;
-        // Collapse all
         list.querySelectorAll('.ev-detail').forEach((d) => { d.hidden = true; });
         list.querySelectorAll('.ev-panel-arrow').forEach((a) => { a.textContent = '›'; });
         list.querySelectorAll('.ev-panel-row').forEach((r) => r.classList.remove('selected'));
@@ -315,17 +344,13 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
           detail.hidden = false;
           arrow.textContent = '⌄';
           row.classList.add('selected');
-          expandedIdx = globalIdx;
           onSelect(globalIdx);
-        } else {
-          expandedIdx = -1;
         }
       });
 
       list.append(row, detail);
     });
 
-    // Pagination controls
     if (totalPages > 1) {
       const prevBtn = el('button', 'ev-page-btn', '‹ Prev');
       prevBtn.disabled = currentPage === 0;
@@ -333,17 +358,13 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
         currentPage -= 1;
         renderList();
       });
-
-      const pageInfo = el('span', 'ev-page-info',
-        `${currentPage + 1} / ${totalPages}`);
-
+      const pageInfo = el('span', 'ev-page-info', `${currentPage + 1} / ${totalPages}`);
       const nextBtn = el('button', 'ev-page-btn', 'Next ›');
       nextBtn.disabled = currentPage >= totalPages - 1;
       nextBtn.addEventListener('click', () => {
         currentPage += 1;
         renderList();
       });
-
       pagination.append(prevBtn, pageInfo, nextBtn);
     }
   };
@@ -352,16 +373,12 @@ const buildPanel = (allPoints, config, onSelect, onSortChange) => {
     currentSort = sortSel.value;
     currentPage = 0;
     renderList();
-    onSortChange(currentSort);
   });
 
   renderList();
 
   panel.append(header, sortBar, list, pagination);
 
-  // Expose helpers
-  panel.evList = list;
-  panel.evCount = countEl;
   panel.highlightRow = (globalIdx) => {
     list.querySelectorAll('.ev-panel-row').forEach((r) => r.classList.remove('selected'));
     const row = list.querySelector(`[data-idx="${globalIdx}"]`);
@@ -384,10 +401,16 @@ const buildToolbar = (config, onUpdate) => {
   const sep = () => el('span', 'ev-toolbar-sep');
 
   ['color', 'monochrome', 'relief', 'wireframe'].forEach((mode) => {
-    const btn = el('button', `ev-toolbar-btn${config['globe-mode'] === mode ? ' active' : ''}`, mode);
+    const btn = el(
+      'button',
+      `ev-toolbar-btn${config['globe-mode'] === mode ? ' active' : ''}`,
+      mode,
+    );
     btn.dataset.mode = mode;
     btn.addEventListener('click', () => {
-      toolbar.querySelectorAll('.ev-toolbar-btn[data-mode]').forEach((b) => b.classList.remove('active'));
+      toolbar.querySelectorAll('.ev-toolbar-btn[data-mode]').forEach((b) => {
+        b.classList.remove('active');
+      });
       btn.classList.add('active');
       onUpdate({ ...config, 'globe-mode': mode });
     });
@@ -401,8 +424,17 @@ const buildToolbar = (config, onUpdate) => {
   colorPick.type = 'color';
   colorPick.value = config['point-color'] || '#ff4400';
   colorPick.title = 'Point color';
-  colorPick.style.cssText = 'height:22px;width:36px;padding:1px;border:1px solid #999;border-radius:2px;cursor:pointer;';
-  colorPick.addEventListener('change', () => onUpdate({ ...config, 'point-color': colorPick.value }));
+  colorPick.style.cssText = [
+    'height:22px',
+    'width:36px',
+    'padding:1px',
+    'border:1px solid #999',
+    'border-radius:2px',
+    'cursor:pointer',
+  ].join(';');
+  colorPick.addEventListener('change', () => {
+    onUpdate({ ...config, 'point-color': colorPick.value });
+  });
   toolbar.append(colorLbl, colorPick, sep());
 
   const magLbl = el('span', 'ev-toolbar-label', 'min mag');
@@ -412,8 +444,16 @@ const buildToolbar = (config, onUpdate) => {
   magInput.min = '0';
   magInput.max = '10';
   magInput.step = '0.1';
-  magInput.style.cssText = 'width:52px;padding:3px 5px;font-size:11px;border:1px solid #aaa;border-radius:2px;';
-  magInput.addEventListener('change', () => onUpdate({ ...config, 'min-magnitude': magInput.value }));
+  magInput.style.cssText = [
+    'width:52px',
+    'padding:3px 5px',
+    'font-size:11px',
+    'border:1px solid #aaa',
+    'border-radius:2px',
+  ].join(';');
+  magInput.addEventListener('change', () => {
+    onUpdate({ ...config, 'min-magnitude': magInput.value });
+  });
   toolbar.append(magLbl, magInput, sep());
 
   const pencil = el('button', 'ev-toolbar-pencil', '✎ Configure');
@@ -435,7 +475,6 @@ const buildToolbar = (config, onUpdate) => {
 // ─── Main decorator ───────────────────────────────────────────────────────────
 
 export default async function decorate(block) {
-  // Parse config
   const config = {
     'globe-mode': 'color',
     'point-color': '',
@@ -465,7 +504,6 @@ export default async function decorate(block) {
 
   block.innerHTML = '';
 
-  // ── Shell ──────────────────────────────────────────────────────────────────
   const shell = el('div', 'earth-viz');
   const stage = el('div', 'ev-stage');
   const canvasWrap = el('div', 'ev-canvas-wrap');
@@ -475,7 +513,6 @@ export default async function decorate(block) {
   shell.append(stage);
   block.append(shell);
 
-  // ── Three.js ───────────────────────────────────────────────────────────────
   let THREE;
   let OrbitControls;
   try {
@@ -486,7 +523,6 @@ export default async function decorate(block) {
     return;
   }
 
-  // ── Renderer ───────────────────────────────────────────────────────────────
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(0x000008);
@@ -504,20 +540,20 @@ export default async function decorate(block) {
   controls.autoRotate = config.animation !== 'false';
   controls.autoRotateSpeed = 0.4;
 
-  // Lights
   scene.add(new THREE.AmbientLight(0xffffff, 0.6));
   const sun = new THREE.DirectionalLight(0xffffff, 1.2);
   sun.position.set(5, 3, 5);
   scene.add(sun);
 
-  // Stars
   const starPos = new Float32Array(6000);
   for (let i = 0; i < 6000; i += 1) starPos[i] = (Math.random() - 0.5) * 400;
   const starGeo = new THREE.BufferGeometry();
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.3 })));
+  scene.add(new THREE.Points(
+    starGeo,
+    new THREE.PointsMaterial({ color: 0xffffff, size: 0.3 }),
+  ));
 
-  // Atmosphere
   scene.add(new THREE.Mesh(
     new THREE.SphereGeometry(GLOBE_RADIUS * 1.02, 64, 64),
     new THREE.MeshPhongMaterial({ color: 0x4488ff, transparent: true, opacity: 0.08 }),
@@ -526,7 +562,6 @@ export default async function decorate(block) {
   const earthGroup = new THREE.Group();
   scene.add(earthGroup);
 
-  // ── State ──────────────────────────────────────────────────────────────────
   let globeMesh = null;
   let pointsGroup = null;
   let panelEl = null;
@@ -538,7 +573,6 @@ export default async function decorate(block) {
   let timeWindow = 0;
   let spinBtn = null;
 
-  // ── Resize ─────────────────────────────────────────────────────────────────
   const resize = () => {
     const w = canvasWrap.offsetWidth;
     const h = Math.max(canvasWrap.offsetHeight, 520);
@@ -549,7 +583,6 @@ export default async function decorate(block) {
   new ResizeObserver(resize).observe(canvasWrap);
   resize();
 
-  // ── Reset view ─────────────────────────────────────────────────────────────
   const resetView = () => {
     camera.position.set(0, 0, DEFAULT_CAMERA_Z);
     camera.lookAt(0, 0, 0);
@@ -557,7 +590,6 @@ export default async function decorate(block) {
     controls.update();
   };
 
-  // ── Spin toggle ────────────────────────────────────────────────────────────
   const setSpinState = (spinning) => {
     controls.autoRotate = spinning;
     if (spinBtn) {
@@ -566,36 +598,10 @@ export default async function decorate(block) {
     }
   };
 
-  // ── Click raycasting — guard against drag ─────────────────────────────────
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let pointerDownPos = null;
 
-  renderer.domElement.addEventListener('pointerdown', (e) => {
-    pointerDownPos = { x: e.clientX, y: e.clientY };
-  });
-
-  renderer.domElement.addEventListener('pointerup', (e) => {
-    if (!pointerDownPos) return;
-    const dx = e.clientX - pointerDownPos.x;
-    const dy = e.clientY - pointerDownPos.y;
-    pointerDownPos = null;
-    // Only treat as click if pointer barely moved (< 5px)
-    if (Math.sqrt(dx * dx + dy * dy) > 5) return;
-
-    const rect = renderer.domElement.getBoundingClientRect();
-    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    if (!pointsGroup) return;
-    const hits = raycaster.intersectObjects(pointsGroup.children, false);
-    if (hits.length > 0) {
-      // eslint-disable-next-line no-use-before-define
-      selectPoint(hits[0].object.userData.idx);
-    }
-  });
-
-  // ── Select point ───────────────────────────────────────────────────────────
   const selectPoint = (idx) => {
     if (idx === selectedIdx) return;
     selectedIdx = idx;
@@ -604,7 +610,9 @@ export default async function decorate(block) {
     if (pointsGroup) {
       pointsGroup.children.forEach((mesh) => {
         const pt = mesh.userData.point;
-        const col = config['point-color'] || magColor(pt[config['magnitude-field'] || 'mag']);
+        const col = config['point-color'] || magColor(
+          pt[config['magnitude-field'] || 'mag'],
+        );
         mesh.material.color.set(col);
         mesh.material.emissive.set(col);
         mesh.material.emissiveIntensity = 0.3;
@@ -616,7 +624,6 @@ export default async function decorate(block) {
         sel.material.emissive.set('#ffffff');
         sel.material.emissiveIntensity = 1;
         sel.scale.setScalar(2.5);
-        // Ease camera toward point
         const target = sel.position.clone().normalize().multiplyScalar(DEFAULT_CAMERA_Z);
         controls.target.set(0, 0, 0);
         camera.position.lerp(target, 0.3);
@@ -626,18 +633,36 @@ export default async function decorate(block) {
     if (panelEl) panelEl.highlightRow(idx);
   };
 
-  // ── Animate loop ───────────────────────────────────────────────────────────
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+  });
+
+  renderer.domElement.addEventListener('pointerup', (e) => {
+    if (!pointerDownPos) return;
+    const dx = e.clientX - pointerDownPos.x;
+    const dy = e.clientY - pointerDownPos.y;
+    pointerDownPos = null;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    if (!pointsGroup) return;
+    const hits = raycaster.intersectObjects(pointsGroup.children, false);
+    if (hits.length > 0) selectPoint(hits[0].object.userData.idx);
+  });
+
   const animate = () => {
     requestAnimationFrame(animate);
     if (Date.now() > pauseRotateUntil) {
-      controls.autoRotate = config.animation !== 'false' && (spinBtn?.classList.contains('active') ?? true);
+      controls.autoRotate = config.animation !== 'false'
+        && (spinBtn ? spinBtn.classList.contains('active') : true);
     }
     controls.update();
     renderer.render(scene, camera);
   };
   animate();
 
-  // ── Render globe + data ────────────────────────────────────────────────────
   const renderGlobe = async (cfg) => {
     if (globeMesh) earthGroup.remove(globeMesh);
     if (pointsGroup) earthGroup.remove(pointsGroup);
@@ -646,7 +671,6 @@ export default async function decorate(block) {
     globeMesh = await buildTexturedGlobe(cfg['globe-mode'] || 'color', THREE);
     earthGroup.add(globeMesh);
 
-    // Fetch + parse
     let rawPoints = [];
     try {
       const resp = await fetch(cfg.data || USGS_FEED);
@@ -654,13 +678,12 @@ export default async function decorate(block) {
       rawPoints = parseData(await resp.text(), cfg.data || USGS_FEED);
     } catch { rawPoints = []; }
 
-    // Filter magnitude
     const minMag = Number.parseFloat(cfg['min-magnitude']) || DEFAULT_MIN_MAG;
     const magF = cfg['magnitude-field'] || 'mag';
     const timeF = cfg['time-field'] || 'time';
-
-    // Filter time window
-    const windowMs = (Number.parseFloat(cfg['time-window-hours']) || DEFAULT_TIME_WINDOW_HOURS) * 3600000;
+    const windowMs = (
+      Number.parseFloat(cfg['time-window-hours']) || DEFAULT_TIME_WINDOW_HOURS
+    ) * 3600000;
     const now = Date.now();
 
     allPoints = rawPoints
@@ -670,19 +693,16 @@ export default async function decorate(block) {
         if (!ts) return true;
         return now - toTimestamp(ts) <= windowMs;
       })
-      .map((p, i) => ({ ...p, __idx: i }));
+      .map((p, i) => ({ ...p, pointIdx: i }));
 
-    // Default sort: newest first
     allPoints.sort((a, b) => toTimestamp(b[timeF]) - toTimestamp(a[timeF]));
 
     pointsGroup = buildPoints(allPoints, cfg, THREE);
     earthGroup.add(pointsGroup);
 
-    // ── Panel ────────────────────────────────────────────────────────────────
     if (panelEl) panelEl.remove();
-    panelEl = buildPanel(allPoints, cfg, selectPoint, () => {});
+    panelEl = buildPanel(allPoints, cfg, selectPoint);
 
-    // Panel collapse tab (attached to left edge of panel)
     const tabBtn = el('button', 'ev-panel-tab', '▶ Events');
     tabBtn.addEventListener('click', () => {
       const collapsed = panelEl.classList.toggle('collapsed');
@@ -690,24 +710,17 @@ export default async function decorate(block) {
       tabBtn.classList.toggle('collapsed', collapsed);
     });
     panelEl.prepend(tabBtn);
-
     stage.append(panelEl);
 
-    // ── Globe controls bar ───────────────────────────────────────────────────
     const existingCtrl = canvasWrap.querySelector('.ev-globe-controls');
     if (existingCtrl) existingCtrl.remove();
 
     const globeControls = el('div', 'ev-globe-controls');
 
-    // Spin / pause button
-    spinBtn = el('button', 'ev-globe-btn ev-spin-btn', '⟳');
+    spinBtn = el('button', 'ev-globe-btn ev-spin-btn active', '⟳');
     spinBtn.title = 'Pause rotation';
-    spinBtn.classList.add('active');
-    spinBtn.addEventListener('click', () => {
-      setSpinState(!controls.autoRotate);
-    });
+    spinBtn.addEventListener('click', () => setSpinState(!controls.autoRotate));
 
-    // Reset view button
     const resetBtn = el('button', 'ev-globe-btn ev-reset-btn', '⊙');
     resetBtn.title = 'Reset view';
     resetBtn.addEventListener('click', resetView);
@@ -715,7 +728,6 @@ export default async function decorate(block) {
     globeControls.append(spinBtn, resetBtn);
     canvasWrap.append(globeControls);
 
-    // ── Time scrub ───────────────────────────────────────────────────────────
     if (timeBar) timeBar.remove();
     const hasTime = allPoints.some((p) => p[timeF]);
     if (hasTime) {
@@ -725,7 +737,6 @@ export default async function decorate(block) {
       timeWindow = timeMax;
 
       timeBar = el('div', 'ev-timebar');
-
       const playBtn = el('button', 'ev-timebar-play', '▶');
       playBtn.title = 'Play time animation';
 
@@ -785,7 +796,6 @@ export default async function decorate(block) {
     selectedIdx = -1;
   };
 
-  // ── Authoring toolbar ──────────────────────────────────────────────────────
   if (isAuthoringEnv()) {
     const toolbar = buildToolbar(config, (updated) => {
       Object.assign(config, updated);
