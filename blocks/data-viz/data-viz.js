@@ -265,6 +265,7 @@ export default async function decorate(block) {
     timeField: rawCfg['time-field'] || preset.config.timeField || 'time',
     filterField: rawCfg['filter-field'] || preset.config.labelField || '',
     ...preset.config,
+    ...rawCfg,
   };
 
   block.innerHTML = '';
