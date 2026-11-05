@@ -354,3 +354,155 @@
     display: none;
   }
 }
+/* ── Globe controls (spin + reset) ──────────────────────────── */
+.ev-globe-controls {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ev-globe-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #2a4a7a;
+  background: rgb(8 12 20 / 80%);
+  color: #7eb8f7;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.ev-globe-btn:hover {
+  background: rgb(26 42 74 / 90%);
+}
+
+.ev-spin-btn.active {
+  color: #fff;
+  border-color: #7eb8f7;
+}
+
+/* ── Panel tab (left edge of panel) ─────────────────────────── */
+.ev-panel-tab {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  position: absolute;
+  left: -28px;
+  top: 40px;
+  width: 28px;
+  padding: 10px 6px;
+  background: #111827;
+  border: 1px solid #1e2a4a;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  color: #7eb8f7;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.ev-panel-tab.collapsed {
+  border-right: 1px solid #1e2a4a;
+  border-radius: 4px;
+  left: -28px;
+}
+
+/* Remove old toggle button styles — replaced by tab */
+.ev-panel-toggle {
+  display: none;
+}
+
+/* ── Sort bar ────────────────────────────────────────────────── */
+.ev-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #0d1220;
+  border-bottom: 1px solid #1e2a4a;
+  flex-shrink: 0;
+}
+
+.ev-sort-label {
+  font-size: 10px;
+  color: #5a7a9a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.ev-sort-select {
+  flex: 1;
+  background: #111827;
+  border: 1px solid #2a4a7a;
+  border-radius: 3px;
+  color: #c8d8e8;
+  font-size: 11px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+/* ── Pagination ──────────────────────────────────────────────── */
+.ev-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #0d0d1a;
+  border-top: 1px solid #1e2a4a;
+  flex-shrink: 0;
+}
+
+.ev-page-btn {
+  padding: 4px 10px;
+  background: #111827;
+  border: 1px solid #2a4a7a;
+  border-radius: 3px;
+  color: #7eb8f7;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.ev-page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ev-page-btn:not(:disabled):hover {
+  background: #1a2a4a;
+}
+
+.ev-page-info {
+  font-size: 11px;
+  color: #5a7a9a;
+  min-width: 48px;
+  text-align: center;
+}
+
+/* ── Detail accordion (inline in list) ──────────────────────── */
+.ev-detail {
+  padding: 10px 12px 10px 52px;
+  background: #0a1020;
+  border-bottom: 1px solid #1e2a4a;
+  font-size: 11px;
+  color: #a0b8cc;
+}
+
+.ev-panel-arrow {
+  font-size: 14px;
+  color: #5a7a9a;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+  margin-left: auto;
+  padding-left: 4px;
+}

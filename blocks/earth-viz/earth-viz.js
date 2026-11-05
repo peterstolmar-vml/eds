@@ -10,20 +10,19 @@ const TEXTURES = {
   color: 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
   monochrome: 'https://unpkg.com/three-globe/example/img/earth-dark.jpg',
   relief: 'https://unpkg.com/three-globe/example/img/earth-topology.png',
-  bump: 'https://unpkg.com/three-globe/example/img/earth-topology.png',
 };
 
-const WIREFRAME_COLOR = 0x00aaff;
 const GLOBE_RADIUS = 1;
 const FALLBACK_SEGMENTS = 64;
-const DEFAULT_POINT_COLOR = '#ff4400';
 const DEFAULT_POINT_SIZE = 0.015;
 const DEFAULT_POINT_OPACITY = 0.85;
 const DEFAULT_MIN_MAG = 2.0;
 const DEFAULT_TIME_WINDOW_HOURS = 24;
+const DEFAULT_CAMERA_Z = 2.8;
 const PAUSE_ON_CLICK_MS = 3000;
 const CONTINENT_COLOR = 0x2a6a3a;
 const OCEAN_COLOR = 0x0a1a3a;
+const PAGE_SIZE = 25;
 
 const isAuthoringEnv = () => {
   const { hostname } = window.location;
@@ -35,7 +34,7 @@ const isAuthoringEnv = () => {
   );
 };
 
-// ─── Magnitude → color ───────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const magColor = (mag) => {
   const m = Number.parseFloat(mag) || 0;
@@ -52,8 +51,6 @@ const magRadius = (mag, base) => {
   return base * (0.5 + (m - 2) * 0.18);
 };
 
-// ─── lat/lng → 3D position ───────────────────────────────────────────────────
-
 const latLngToVec3 = (lat, lng, radius, THREE) => {
   const phi = (90 - Number.parseFloat(lat)) * (Math.PI / 180);
   const theta = (Number.parseFloat(lng) + 180) * (Math.PI / 180);
@@ -64,7 +61,27 @@ const latLngToVec3 = (lat, lng, radius, THREE) => {
   );
 };
 
-// ─── Three.js dynamic import ─────────────────────────────────────────────────
+const toTimestamp = (val) => {
+  if (!val) return 0;
+  return Number.isNaN(Number(val)) ? new Date(val).getTime() : Number(val);
+};
+
+const formatTs = (val) => {
+  if (!val) return '';
+  return new Date(toTimestamp(val)).toUTCString();
+};
+
+const el = (tag, cls, ...children) => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  children.flat().forEach((c) => {
+    if (!c && c !== 0) return;
+    node.append(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return node;
+};
+
+// ─── Three.js loader ──────────────────────────────────────────────────────────
 
 const loadThree = async () => {
   const mod = await import(/* @vite-ignore */ THREE_BASE);
@@ -74,23 +91,21 @@ const loadThree = async () => {
   return { THREE: mod, OrbitControls };
 };
 
-// ─── Fallback continent geometry ─────────────────────────────────────────────
+// ─── Fallback continent globe ─────────────────────────────────────────────────
 
 const buildFallbackGlobe = (THREE) => {
   const group = new THREE.Group();
   const oceanGeo = new THREE.SphereGeometry(GLOBE_RADIUS, FALLBACK_SEGMENTS, FALLBACK_SEGMENTS);
-  const oceanMat = new THREE.MeshPhongMaterial({ color: OCEAN_COLOR });
-  group.add(new THREE.Mesh(oceanGeo, oceanMat));
+  group.add(new THREE.Mesh(oceanGeo, new THREE.MeshPhongMaterial({ color: OCEAN_COLOR })));
 
-  // Simplified continent outlines as lat/lng bounding boxes → extruded spherical patches
   const continents = [
-    { lat: [25, 70], lng: [-170, -50] }, // N America
-    { lat: [-55, 15], lng: [-85, -30] }, // S America
-    { lat: [-35, 35], lng: [-20, 55] }, // Africa
-    { lat: [35, 70], lng: [-10, 60] }, // Europe
-    { lat: [5, 75], lng: [60, 145] }, // Asia
-    { lat: [-45, -10], lng: [110, 155] }, // Australia
-    { lat: [-90, -65], lng: [-180, 180] }, // Antarctica
+    { lat: [25, 70], lng: [-170, -50] },
+    { lat: [-55, 15], lng: [-85, -30] },
+    { lat: [-35, 35], lng: [-20, 55] },
+    { lat: [35, 70], lng: [-10, 60] },
+    { lat: [5, 75], lng: [60, 145] },
+    { lat: [-45, -10], lng: [110, 155] },
+    { lat: [-90, -65], lng: [-180, 180] },
   ];
 
   continents.forEach(({ lat, lng }) => {
@@ -101,9 +116,10 @@ const buildFallbackGlobe = (THREE) => {
         const clat = lat[0] + (i + 0.5) * ((lat[1] - lat[0]) / latSteps);
         const clng = lng[0] + (j + 0.5) * ((lng[1] - lng[0]) / lngSteps);
         const pos = latLngToVec3(clat, clng, GLOBE_RADIUS + 0.002, THREE);
-        const geo = new THREE.SphereGeometry(0.025, 8, 8);
-        const mat = new THREE.MeshPhongMaterial({ color: CONTINENT_COLOR });
-        const mesh = new THREE.Mesh(geo, mat);
+        const mesh = new THREE.Mesh(
+          new THREE.SphereGeometry(0.025, 8, 8),
+          new THREE.MeshPhongMaterial({ color: CONTINENT_COLOR }),
+        );
         mesh.position.copy(pos);
         group.add(mesh);
       }
@@ -113,7 +129,37 @@ const buildFallbackGlobe = (THREE) => {
   return group;
 };
 
-// ─── Point cloud builder ─────────────────────────────────────────────────────
+// ─── Textured globe ───────────────────────────────────────────────────────────
+
+const buildTexturedGlobe = (mode, THREE) => new Promise((resolve) => {
+  if (mode === 'wireframe') {
+    resolve(new THREE.Mesh(
+      new THREE.SphereGeometry(GLOBE_RADIUS, FALLBACK_SEGMENTS, FALLBACK_SEGMENTS),
+      new THREE.MeshBasicMaterial({ color: 0x00aaff, wireframe: true }),
+    ));
+    return;
+  }
+
+  const url = TEXTURES[mode] || TEXTURES.color;
+  new THREE.TextureLoader().load(
+    url,
+    (tex) => {
+      const matOpts = { map: tex };
+      if (mode === 'relief') {
+        matOpts.bumpMap = tex;
+        matOpts.bumpScale = 0.05;
+      }
+      resolve(new THREE.Mesh(
+        new THREE.SphereGeometry(GLOBE_RADIUS, FALLBACK_SEGMENTS, FALLBACK_SEGMENTS),
+        new THREE.MeshPhongMaterial(matOpts),
+      ));
+    },
+    undefined,
+    () => resolve(buildFallbackGlobe(THREE)),
+  );
+});
+
+// ─── Point cloud ──────────────────────────────────────────────────────────────
 
 const buildPoints = (points, config, THREE) => {
   const group = new THREE.Group();
@@ -130,9 +176,7 @@ const buildPoints = (points, config, THREE) => {
     if (Number.isNaN(lat) || Number.isNaN(lng)) return;
     const mag = pt[magF];
     const color = customColor || magColor(mag);
-    const radius = magRadius(mag, baseSize);
     const pos = latLngToVec3(lat, lng, GLOBE_RADIUS + 0.01, THREE);
-    const geo = new THREE.SphereGeometry(radius, 8, 8);
     const mat = new THREE.MeshPhongMaterial({
       color,
       transparent: true,
@@ -140,7 +184,10 @@ const buildPoints = (points, config, THREE) => {
       emissive: color,
       emissiveIntensity: 0.3,
     });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(magRadius(mag, baseSize), 8, 8),
+      mat,
+    );
     mesh.position.copy(pos);
     mesh.userData = { idx, point: pt };
     group.add(mesh);
@@ -149,196 +196,216 @@ const buildPoints = (points, config, THREE) => {
   return group;
 };
 
-// ─── Globe texture loader ─────────────────────────────────────────────────────
+// ─── Sort helper ──────────────────────────────────────────────────────────────
 
-const buildTexturedGlobe = (mode, THREE) => new Promise((resolve) => {
-  if (mode === 'wireframe') {
-    const geo = new THREE.SphereGeometry(GLOBE_RADIUS, FALLBACK_SEGMENTS, FALLBACK_SEGMENTS);
-    const mat = new THREE.MeshBasicMaterial({ color: WIREFRAME_COLOR, wireframe: true });
-    resolve(new THREE.Mesh(geo, mat));
-    return;
+const sortPoints = (points, sortKey, timeF, magF) => {
+  const sorted = [...points];
+  if (sortKey === 'time-desc') {
+    sorted.sort((a, b) => toTimestamp(b[timeF]) - toTimestamp(a[timeF]));
+  } else if (sortKey === 'time-asc') {
+    sorted.sort((a, b) => toTimestamp(a[timeF]) - toTimestamp(b[timeF]));
+  } else if (sortKey === 'mag-desc') {
+    sorted.sort((a, b) => (Number.parseFloat(b[magF]) || 0) - (Number.parseFloat(a[magF]) || 0));
+  } else if (sortKey === 'mag-asc') {
+    sorted.sort((a, b) => (Number.parseFloat(a[magF]) || 0) - (Number.parseFloat(b[magF]) || 0));
   }
+  return sorted;
+};
 
-  const loader = new THREE.TextureLoader();
-  const url = TEXTURES[mode] || TEXTURES.color;
+// ─── Panel ────────────────────────────────────────────────────────────────────
 
-  loader.load(
-    url,
-    (tex) => {
-      const geo = new THREE.SphereGeometry(GLOBE_RADIUS, FALLBACK_SEGMENTS, FALLBACK_SEGMENTS);
-      const matOpts = { map: tex };
-      if (mode === 'relief') {
-        matOpts.bumpMap = tex;
-        matOpts.bumpScale = 0.05;
-      }
-      const mat = new THREE.MeshPhongMaterial(matOpts);
-      resolve(new THREE.Mesh(geo, mat));
-    },
-    undefined,
-    () => {
-      // Texture failed — use fallback continent globe
-      resolve(buildFallbackGlobe(THREE));
-    },
-  );
-});
-
-// ─── Side panel ──────────────────────────────────────────────────────────────
-
-const buildPanel = (points, config, onSelect) => {
+const buildPanel = (allPoints, config, onSelect, onSortChange) => {
   const labelF = config['label-field'] || 'place';
   const timeF = config['time-field'] || 'time';
   const magF = config['magnitude-field'] || 'mag';
   const title = config['panel-title'] || 'Recent Earthquakes';
 
-  const panel = document.createElement('div');
-  panel.className = 'ev-panel';
+  let currentSort = 'time-desc';
+  let currentPage = 0;
+  let expandedIdx = -1;
 
-  const header = document.createElement('div');
-  header.className = 'ev-panel-header';
+  const panel = el('div', 'ev-panel');
 
-  const titleEl = document.createElement('p');
-  titleEl.className = 'ev-panel-title';
-  titleEl.textContent = title;
-
-  const countEl = document.createElement('span');
-  countEl.className = 'ev-panel-count';
-  countEl.textContent = `${points.length} events`;
-
+  // Header row: title + count + sort + collapse tab
+  const header = el('div', 'ev-panel-header');
+  const titleEl = el('p', 'ev-panel-title', title);
+  const countEl = el('span', 'ev-panel-count', `${allPoints.length} events`);
   header.append(titleEl, countEl);
 
-  const list = document.createElement('div');
-  list.className = 'ev-panel-list';
-
-  points.forEach((pt, idx) => {
-    const mag = Number.parseFloat(pt[magF]) || 0;
-    const row = document.createElement('div');
-    row.className = 'ev-panel-row';
-    row.dataset.idx = idx;
-
-    const magDot = document.createElement('div');
-    magDot.className = 'ev-panel-mag';
-    magDot.style.background = magColor(mag);
-    magDot.textContent = mag.toFixed(1);
-
-    const info = document.createElement('div');
-    info.className = 'ev-panel-info';
-
-    const lbl = document.createElement('div');
-    lbl.className = 'ev-panel-label';
-    lbl.textContent = pt[labelF] || `${pt.latitude ?? pt.lat}, ${pt.longitude ?? pt.lng}`;
-
-    const time = document.createElement('div');
-    time.className = 'ev-panel-time';
-    const ts = pt[timeF];
-    time.textContent = ts ? new Date(Number.isNaN(Number(ts)) ? ts : Number(ts)).toUTCString() : '';
-
-    info.append(lbl, time);
-    row.append(magDot, info);
-    row.addEventListener('click', () => onSelect(idx));
-    list.append(row);
+  // Sort bar
+  const sortBar = el('div', 'ev-sort-bar');
+  const sortLbl = el('span', 'ev-sort-label', 'Sort:');
+  const sortSel = el('select', 'ev-sort-select');
+  [
+    ['time-desc', 'Time ↓ (newest)'],
+    ['time-asc', 'Time ↑ (oldest)'],
+    ['mag-desc', 'Magnitude ↓'],
+    ['mag-asc', 'Magnitude ↑'],
+  ].forEach(([val, lbl]) => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = lbl;
+    sortSel.append(opt);
   });
+  sortBar.append(sortLbl, sortSel);
 
-  const detail = document.createElement('div');
-  detail.className = 'ev-detail';
-  detail.hidden = true;
+  const list = el('div', 'ev-panel-list');
+  const pagination = el('div', 'ev-pagination');
 
-  panel.append(header, list, detail);
-  panel.evList = list;
-  panel.evDetail = detail;
-  panel.evCount = countEl;
+  const renderList = () => {
+    list.innerHTML = '';
+    pagination.innerHTML = '';
+    expandedIdx = -1;
 
-  return panel;
-};
+    const sorted = sortPoints(allPoints, currentSort, timeF, magF);
+    const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+    currentPage = Math.min(currentPage, Math.max(0, totalPages - 1));
+    const pageItems = sorted.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
-const showDetail = (panel, pt, labelF, timeF, magF) => {
-  const detail = panel.evDetail;
-  detail.hidden = false;
-  detail.innerHTML = '';
+    pageItems.forEach((pt) => {
+      const globalIdx = pt.__idx;
+      const mag = Number.parseFloat(pt[magF]) || 0;
 
-  const h4 = document.createElement('h4');
-  h4.textContent = pt[labelF] || 'Event Details';
-  detail.append(h4);
+      const row = el('div', 'ev-panel-row');
+      row.dataset.idx = globalIdx;
 
-  const show = (key, val) => {
-    if (!val && val !== 0) return;
-    const row = document.createElement('div');
-    row.className = 'ev-detail-row';
-    const k = document.createElement('span');
-    k.className = 'ev-detail-key';
-    k.textContent = key;
-    const v = document.createElement('span');
-    v.className = 'ev-detail-val';
-    v.textContent = String(val);
-    row.append(k, v);
-    detail.append(row);
+      const magDot = el('div', 'ev-panel-mag', mag.toFixed(1));
+      magDot.style.background = magColor(mag);
+
+      const info = el('div', 'ev-panel-info');
+      const lbl = el('div', 'ev-panel-label', pt[labelF] || `${pt.latitude ?? ''}, ${pt.longitude ?? ''}`);
+      const time = el('div', 'ev-panel-time', formatTs(pt[timeF]));
+      info.append(lbl, time);
+
+      const arrow = el('span', 'ev-panel-arrow', '›');
+      row.append(magDot, info, arrow);
+
+      // Inline detail accordion
+      const detail = el('div', 'ev-detail');
+      detail.hidden = true;
+
+      const detailFields = [
+        ['Magnitude', pt[magF]],
+        ['Location', pt[labelF]],
+        ['Time', formatTs(pt[timeF])],
+        ['Depth', pt.depth ? `${pt.depth} km` : null],
+        ['Latitude', pt.latitude ?? pt.lat],
+        ['Longitude', pt.longitude ?? pt.lng],
+      ];
+
+      const known = new Set([labelF, timeF, magF, 'latitude', 'longitude', 'lat', 'lng', 'depth', '__idx']);
+      Object.entries(pt).forEach(([k, v]) => {
+        if (!known.has(k)) detailFields.push([k, v]);
+      });
+
+      detailFields.forEach(([k, v]) => {
+        if (!v && v !== 0) return;
+        const drow = el('div', 'ev-detail-row');
+        drow.append(el('span', 'ev-detail-key', k), el('span', 'ev-detail-val', String(v)));
+        detail.append(drow);
+      });
+
+      row.addEventListener('click', () => {
+        const isOpen = !detail.hidden;
+        // Collapse all
+        list.querySelectorAll('.ev-detail').forEach((d) => { d.hidden = true; });
+        list.querySelectorAll('.ev-panel-arrow').forEach((a) => { a.textContent = '›'; });
+        list.querySelectorAll('.ev-panel-row').forEach((r) => r.classList.remove('selected'));
+        if (!isOpen) {
+          detail.hidden = false;
+          arrow.textContent = '⌄';
+          row.classList.add('selected');
+          expandedIdx = globalIdx;
+          onSelect(globalIdx);
+        } else {
+          expandedIdx = -1;
+        }
+      });
+
+      list.append(row, detail);
+    });
+
+    // Pagination controls
+    if (totalPages > 1) {
+      const prevBtn = el('button', 'ev-page-btn', '‹ Prev');
+      prevBtn.disabled = currentPage === 0;
+      prevBtn.addEventListener('click', () => {
+        currentPage -= 1;
+        renderList();
+      });
+
+      const pageInfo = el('span', 'ev-page-info',
+        `${currentPage + 1} / ${totalPages}`);
+
+      const nextBtn = el('button', 'ev-page-btn', 'Next ›');
+      nextBtn.disabled = currentPage >= totalPages - 1;
+      nextBtn.addEventListener('click', () => {
+        currentPage += 1;
+        renderList();
+      });
+
+      pagination.append(prevBtn, pageInfo, nextBtn);
+    }
   };
 
-  show('Magnitude', pt[magF]);
-  show('Location', pt[labelF]);
-  const ts = pt[timeF];
-  if (ts) show('Time', new Date(Number.isNaN(Number(ts)) ? ts : Number(ts)).toUTCString());
-  show('Depth', pt.depth ? `${pt.depth} km` : null);
-  show('Latitude', pt.latitude ?? pt.lat);
-  show('Longitude', pt.longitude ?? pt.lng);
-
-  // Any extra keys
-  const known = new Set([labelF, timeF, magF, 'latitude', 'longitude', 'lat', 'lng', 'depth']);
-  Object.entries(pt).forEach(([k, v]) => {
-    if (!known.has(k)) show(k, v);
+  sortSel.addEventListener('change', () => {
+    currentSort = sortSel.value;
+    currentPage = 0;
+    renderList();
+    onSortChange(currentSort);
   });
+
+  renderList();
+
+  panel.append(header, sortBar, list, pagination);
+
+  // Expose helpers
+  panel.evList = list;
+  panel.evCount = countEl;
+  panel.highlightRow = (globalIdx) => {
+    list.querySelectorAll('.ev-panel-row').forEach((r) => r.classList.remove('selected'));
+    const row = list.querySelector(`[data-idx="${globalIdx}"]`);
+    if (row) {
+      row.classList.add('selected');
+      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  };
+
+  return panel;
 };
 
 // ─── Authoring toolbar ────────────────────────────────────────────────────────
 
 const buildToolbar = (config, onUpdate) => {
-  const toolbar = document.createElement('div');
-  toolbar.className = 'ev-toolbar';
-
-  const lbl = document.createElement('span');
-  lbl.className = 'ev-toolbar-label';
-  lbl.textContent = '✎ Earth Viz';
+  const toolbar = el('div', 'ev-toolbar');
+  const lbl = el('span', 'ev-toolbar-label', '✎ Earth Viz');
   toolbar.append(lbl);
 
-  const sep = () => {
-    const s = document.createElement('span');
-    s.className = 'ev-toolbar-sep';
-    return s;
-  };
+  const sep = () => el('span', 'ev-toolbar-sep');
 
-  // Globe mode buttons
   ['color', 'monochrome', 'relief', 'wireframe'].forEach((mode) => {
-    const btn = document.createElement('button');
-    btn.className = `ev-toolbar-btn${config['globe-mode'] === mode ? ' active' : ''}`;
-    btn.textContent = mode;
+    const btn = el('button', `ev-toolbar-btn${config['globe-mode'] === mode ? ' active' : ''}`, mode);
+    btn.dataset.mode = mode;
     btn.addEventListener('click', () => {
       toolbar.querySelectorAll('.ev-toolbar-btn[data-mode]').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       onUpdate({ ...config, 'globe-mode': mode });
     });
-    btn.dataset.mode = mode;
     toolbar.append(btn);
   });
 
   toolbar.append(sep());
 
-  // Point color picker
-  const colorLbl = document.createElement('span');
-  colorLbl.className = 'ev-toolbar-label';
-  colorLbl.textContent = 'pts';
+  const colorLbl = el('span', 'ev-toolbar-label', 'pts');
   const colorPick = document.createElement('input');
   colorPick.type = 'color';
-  colorPick.value = config['point-color'] || DEFAULT_POINT_COLOR;
-  colorPick.title = 'Point color (blank = magnitude scale)';
+  colorPick.value = config['point-color'] || '#ff4400';
+  colorPick.title = 'Point color';
   colorPick.style.cssText = 'height:22px;width:36px;padding:1px;border:1px solid #999;border-radius:2px;cursor:pointer;';
-  colorPick.addEventListener('change', () => {
-    onUpdate({ ...config, 'point-color': colorPick.value });
-  });
+  colorPick.addEventListener('change', () => onUpdate({ ...config, 'point-color': colorPick.value }));
   toolbar.append(colorLbl, colorPick, sep());
 
-  // Min magnitude
-  const magLbl = document.createElement('span');
-  magLbl.className = 'ev-toolbar-label';
-  magLbl.textContent = 'min mag';
+  const magLbl = el('span', 'ev-toolbar-label', 'min mag');
   const magInput = document.createElement('input');
   magInput.type = 'number';
   magInput.value = config['min-magnitude'] || DEFAULT_MIN_MAG;
@@ -346,19 +413,14 @@ const buildToolbar = (config, onUpdate) => {
   magInput.max = '10';
   magInput.step = '0.1';
   magInput.style.cssText = 'width:52px;padding:3px 5px;font-size:11px;border:1px solid #aaa;border-radius:2px;';
-  magInput.addEventListener('change', () => {
-    onUpdate({ ...config, 'min-magnitude': magInput.value });
-  });
+  magInput.addEventListener('change', () => onUpdate({ ...config, 'min-magnitude': magInput.value }));
   toolbar.append(magLbl, magInput, sep());
 
-  // Pencil / dialog button
-  const pencil = document.createElement('button');
-  pencil.className = 'ev-toolbar-pencil';
+  const pencil = el('button', 'ev-toolbar-pencil', '✎ Configure');
   pencil.title = 'Open full configuration dialog';
-  pencil.textContent = '✎ Configure';
   pencil.addEventListener('click', async () => {
-    const { openDialog } = await import('./earth-viz-dialog.js');
-    openDialog.default(config, (updated) => onUpdate(updated));
+    const { default: openDialog } = await import('./earth-viz-dialog.js');
+    openDialog(config, (updated) => onUpdate(updated));
   });
   toolbar.append(pencil);
 
@@ -368,7 +430,7 @@ const buildToolbar = (config, onUpdate) => {
 // ─── Main decorator ───────────────────────────────────────────────────────────
 
 export default async function decorate(block) {
-  // Parse config from block table rows
+  // Parse config
   const config = {
     'globe-mode': 'color',
     'point-color': '',
@@ -398,39 +460,28 @@ export default async function decorate(block) {
 
   block.innerHTML = '';
 
-  // ── Build shell ─────────────────────────────────────────────────────────────
-  const shell = document.createElement('div');
-  shell.className = 'earth-viz';
-
-  const stage = document.createElement('div');
-  stage.className = 'ev-stage';
-
-  const canvasWrap = document.createElement('div');
-  canvasWrap.className = 'ev-canvas-wrap';
-
-  const loading = document.createElement('div');
-  loading.className = 'ev-loading';
-  loading.textContent = 'Loading Earth…';
+  // ── Shell ──────────────────────────────────────────────────────────────────
+  const shell = el('div', 'earth-viz');
+  const stage = el('div', 'ev-stage');
+  const canvasWrap = el('div', 'ev-canvas-wrap');
+  const loading = el('div', 'ev-loading', 'Loading Earth…');
   canvasWrap.append(loading);
-
   stage.append(canvasWrap);
   shell.append(stage);
   block.append(shell);
 
-  // ── Load Three.js ───────────────────────────────────────────────────────────
+  // ── Three.js ───────────────────────────────────────────────────────────────
   let THREE;
   let OrbitControls;
   try {
-    const mod = await loadThree();
-    THREE = mod.THREE;
-    OrbitControls = mod.OrbitControls;
+    ({ THREE, OrbitControls } = await loadThree());
   } catch {
     loading.className = 'ev-error';
-    loading.textContent = 'Could not load Three.js. Check your connection.';
+    loading.textContent = 'Could not load Three.js.';
     return;
   }
 
-  // ── Renderer ────────────────────────────────────────────────────────────────
+  // ── Renderer ───────────────────────────────────────────────────────────────
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(0x000008);
@@ -438,13 +489,13 @@ export default async function decorate(block) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
-  camera.position.z = 2.8;
+  camera.position.z = DEFAULT_CAMERA_Z;
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.minDistance = 1.3;
-  controls.maxDistance = 6;
+  controls.maxDistance = 8;
   controls.autoRotate = config.animation !== 'false';
   controls.autoRotateSpeed = 0.4;
 
@@ -454,30 +505,23 @@ export default async function decorate(block) {
   sun.position.set(5, 3, 5);
   scene.add(sun);
 
-  // Starfield
+  // Stars
+  const starPos = new Float32Array(6000);
+  for (let i = 0; i < 6000; i += 1) starPos[i] = (Math.random() - 0.5) * 400;
   const starGeo = new THREE.BufferGeometry();
-  const starCount = 2000;
-  const starPos = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount * 3; i += 1) {
-    starPos[i] = (Math.random() - 0.5) * 400;
-  }
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
   scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.3 })));
 
-  // Atmosphere glow
-  const atmGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 1.02, 64, 64);
-  const atmMat = new THREE.MeshPhongMaterial({
-    color: 0x4488ff,
-    transparent: true,
-    opacity: 0.08,
-    side: THREE.FrontSide,
-  });
-  scene.add(new THREE.Mesh(atmGeo, atmMat));
+  // Atmosphere
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(GLOBE_RADIUS * 1.02, 64, 64),
+    new THREE.MeshPhongMaterial({ color: 0x4488ff, transparent: true, opacity: 0.08 }),
+  ));
 
-  // ── Globe group (replaceable) ───────────────────────────────────────────────
   const earthGroup = new THREE.Group();
   scene.add(earthGroup);
 
+  // ── State ──────────────────────────────────────────────────────────────────
   let globeMesh = null;
   let pointsGroup = null;
   let panelEl = null;
@@ -487,31 +531,71 @@ export default async function decorate(block) {
   let pauseRotateUntil = 0;
   let timePlaying = false;
   let timeWindow = 0;
-  let timeMax = 0;
+  let spinBtn = null;
 
-  // ── Resize handler ──────────────────────────────────────────────────────────
+  // ── Resize ─────────────────────────────────────────────────────────────────
   const resize = () => {
     const w = canvasWrap.offsetWidth;
-    const h = canvasWrap.offsetHeight || 520;
+    const h = Math.max(canvasWrap.offsetHeight, 520);
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   };
-
-  const resizeObserver = new ResizeObserver(resize);
-  resizeObserver.observe(canvasWrap);
+  new ResizeObserver(resize).observe(canvasWrap);
   resize();
 
-  // ── Raycaster for click ─────────────────────────────────────────────────────
+  // ── Reset view ─────────────────────────────────────────────────────────────
+  const resetView = () => {
+    camera.position.set(0, 0, DEFAULT_CAMERA_Z);
+    camera.lookAt(0, 0, 0);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  };
+
+  // ── Spin toggle ────────────────────────────────────────────────────────────
+  const setSpinState = (spinning) => {
+    controls.autoRotate = spinning;
+    if (spinBtn) {
+      spinBtn.classList.toggle('active', spinning);
+      spinBtn.title = spinning ? 'Pause rotation' : 'Resume rotation';
+    }
+  };
+
+  // ── Click raycasting — guard against drag ─────────────────────────────────
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+  let pointerDownPos = null;
 
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+  });
+
+  renderer.domElement.addEventListener('pointerup', (e) => {
+    if (!pointerDownPos) return;
+    const dx = e.clientX - pointerDownPos.x;
+    const dy = e.clientY - pointerDownPos.y;
+    pointerDownPos = null;
+    // Only treat as click if pointer barely moved (< 5px)
+    if (Math.sqrt(dx * dx + dy * dy) > 5) return;
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    if (!pointsGroup) return;
+    const hits = raycaster.intersectObjects(pointsGroup.children, false);
+    if (hits.length > 0) {
+      // eslint-disable-next-line no-use-before-define
+      selectPoint(hits[0].object.userData.idx);
+    }
+  });
+
+  // ── Select point ───────────────────────────────────────────────────────────
   const selectPoint = (idx) => {
     if (idx === selectedIdx) return;
     selectedIdx = idx;
     pauseRotateUntil = Date.now() + PAUSE_ON_CLICK_MS;
 
-    // Reset all point colors
     if (pointsGroup) {
       pointsGroup.children.forEach((mesh) => {
         const pt = mesh.userData.point;
@@ -521,221 +605,162 @@ export default async function decorate(block) {
         mesh.material.emissiveIntensity = 0.3;
         mesh.scale.setScalar(1);
       });
-
       const sel = pointsGroup.children.find((m) => m.userData.idx === idx);
       if (sel) {
         sel.material.color.set('#ffffff');
         sel.material.emissive.set('#ffffff');
         sel.material.emissiveIntensity = 1;
         sel.scale.setScalar(2.5);
-      }
-    }
-
-    // Panel highlight
-    if (panelEl) {
-      panelEl.evList.querySelectorAll('.ev-panel-row').forEach((r) => r.classList.remove('selected'));
-      const row = panelEl.evList.querySelector(`[data-idx="${idx}"]`);
-      if (row) {
-        row.classList.add('selected');
-        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-      const pt = allPoints[idx];
-      if (pt) {
-        showDetail(
-          panelEl,
-          pt,
-          config['label-field'] || 'place',
-          config['time-field'] || 'time',
-          config['magnitude-field'] || 'mag',
-        );
-      }
-    }
-
-    // Ease camera toward point
-    if (pointsGroup) {
-      const sel = pointsGroup.children.find((m) => m.userData.idx === idx);
-      if (sel) {
-        const target = sel.position.clone().normalize().multiplyScalar(2.8);
+        // Ease camera toward point
+        const target = sel.position.clone().normalize().multiplyScalar(DEFAULT_CAMERA_Z);
         controls.target.set(0, 0, 0);
         camera.position.lerp(target, 0.3);
       }
     }
+
+    if (panelEl) panelEl.highlightRow(idx);
   };
 
-  renderer.domElement.addEventListener('click', (e) => {
-    const rect = renderer.domElement.getBoundingClientRect();
-    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    if (!pointsGroup) return;
-    const hits = raycaster.intersectObjects(pointsGroup.children, false);
-    if (hits.length > 0) {
-      selectPoint(hits[0].object.userData.idx);
-    }
-  });
-
-  // ── Animation loop ──────────────────────────────────────────────────────────
+  // ── Animate loop ───────────────────────────────────────────────────────────
   const animate = () => {
     requestAnimationFrame(animate);
-    controls.autoRotate = config.animation !== 'false' && Date.now() > pauseRotateUntil;
+    if (Date.now() > pauseRotateUntil) {
+      controls.autoRotate = config.animation !== 'false' && (spinBtn?.classList.contains('active') ?? true);
+    }
     controls.update();
     renderer.render(scene, camera);
   };
   animate();
 
-  // ── Filter points by time window ────────────────────────────────────────────
-  const applyTimeFilter = (windowStart) => {
-    if (!pointsGroup) return;
-    const timeF = config['time-field'] || 'time';
-    pointsGroup.children.forEach((mesh) => {
-      const pt = mesh.userData.point;
-      const ts = pt[timeF];
-      if (!ts) { mesh.visible = true; return; }
-      const t = Number.isNaN(Number(ts)) ? new Date(ts).getTime() : Number(ts);
-      mesh.visible = t >= windowStart;
-    });
-  };
-
-  // ── Render globe + data ─────────────────────────────────────────────────────
+  // ── Render globe + data ────────────────────────────────────────────────────
   const renderGlobe = async (cfg) => {
-    // Remove old meshes
     if (globeMesh) earthGroup.remove(globeMesh);
     if (pointsGroup) earthGroup.remove(pointsGroup);
-
     loading.style.display = 'flex';
 
-    // Build globe
     globeMesh = await buildTexturedGlobe(cfg['globe-mode'] || 'color', THREE);
     earthGroup.add(globeMesh);
 
-    // Fetch data
-    const dataUrl = cfg.data || USGS_FEED;
+    // Fetch + parse
     let rawPoints = [];
     try {
-      const resp = await fetch(dataUrl);
+      const resp = await fetch(cfg.data || USGS_FEED);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const text = await resp.text();
-      rawPoints = parseData(text, dataUrl);
-    } catch {
-      rawPoints = [];
-    }
+      rawPoints = parseData(await resp.text(), cfg.data || USGS_FEED);
+    } catch { rawPoints = []; }
 
-    // Filter by magnitude
+    // Filter magnitude
     const minMag = Number.parseFloat(cfg['min-magnitude']) || DEFAULT_MIN_MAG;
     const magF = cfg['magnitude-field'] || 'mag';
-    allPoints = rawPoints.filter((p) => (Number.parseFloat(p[magF]) || 0) >= minMag);
-
-    // Filter by time window
-    const windowHours = Number.parseFloat(cfg['time-window-hours']) || DEFAULT_TIME_WINDOW_HOURS;
     const timeF = cfg['time-field'] || 'time';
+
+    // Filter time window
+    const windowMs = (Number.parseFloat(cfg['time-window-hours']) || DEFAULT_TIME_WINDOW_HOURS) * 3600000;
     const now = Date.now();
-    const windowMs = windowHours * 3600 * 1000;
-    allPoints = allPoints.filter((p) => {
-      const ts = p[timeF];
-      if (!ts) return true;
-      const t = Number.isNaN(Number(ts)) ? new Date(ts).getTime() : Number(ts);
-      return now - t <= windowMs;
-    });
 
-    const toTimestamp = (pt) => {
-      const raw = pt[timeF];
-      if (!raw) return 0;
-      return Number.isNaN(Number(raw)) ? new Date(raw).getTime() : Number(raw);
-    };
+    allPoints = rawPoints
+      .filter((p) => (Number.parseFloat(p[magF]) || 0) >= minMag)
+      .filter((p) => {
+        const ts = p[timeF];
+        if (!ts) return true;
+        return now - toTimestamp(ts) <= windowMs;
+      })
+      .map((p, i) => ({ ...p, __idx: i }));
 
-    allPoints.sort((a, b) => toTimestamp(b) - toTimestamp(a));
+    // Default sort: newest first
+    allPoints.sort((a, b) => toTimestamp(b[timeF]) - toTimestamp(a[timeF]));
 
-    // Build points
     pointsGroup = buildPoints(allPoints, cfg, THREE);
     earthGroup.add(pointsGroup);
 
-    // Build / update panel
+    // ── Panel ────────────────────────────────────────────────────────────────
     if (panelEl) panelEl.remove();
-    panelEl = buildPanel(allPoints, cfg, selectPoint);
+    panelEl = buildPanel(allPoints, cfg, selectPoint, () => {});
+
+    // Panel collapse tab (attached to left edge of panel)
+    const tabBtn = el('button', 'ev-panel-tab', '▶ Events');
+    tabBtn.addEventListener('click', () => {
+      const collapsed = panelEl.classList.toggle('collapsed');
+      tabBtn.textContent = collapsed ? '◀ Events' : '▶ Events';
+      tabBtn.classList.toggle('collapsed', collapsed);
+    });
+    panelEl.prepend(tabBtn);
+
     stage.append(panelEl);
 
-    // Panel toggle button
-    const existingToggle = canvasWrap.querySelector('.ev-panel-toggle');
-    if (existingToggle) existingToggle.remove();
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'ev-panel-toggle';
-    toggleBtn.title = 'Toggle side panel';
-    toggleBtn.textContent = '▶';
-    toggleBtn.addEventListener('click', () => {
-      const collapsed = panelEl.classList.toggle('collapsed');
-      toggleBtn.textContent = collapsed ? '◀' : '▶';
-    });
-    canvasWrap.append(toggleBtn);
+    // ── Globe controls bar ───────────────────────────────────────────────────
+    const existingCtrl = canvasWrap.querySelector('.ev-globe-controls');
+    if (existingCtrl) existingCtrl.remove();
 
-    // Time scrub
+    const globeControls = el('div', 'ev-globe-controls');
+
+    // Spin / pause button
+    spinBtn = el('button', 'ev-globe-btn ev-spin-btn', '⟳');
+    spinBtn.title = 'Pause rotation';
+    spinBtn.classList.add('active');
+    spinBtn.addEventListener('click', () => {
+      setSpinState(!controls.autoRotate);
+    });
+
+    // Reset view button
+    const resetBtn = el('button', 'ev-globe-btn ev-reset-btn', '⊙');
+    resetBtn.title = 'Reset view';
+    resetBtn.addEventListener('click', resetView);
+
+    globeControls.append(spinBtn, resetBtn);
+    canvasWrap.append(globeControls);
+
+    // ── Time scrub ───────────────────────────────────────────────────────────
     if (timeBar) timeBar.remove();
     const hasTime = allPoints.some((p) => p[timeF]);
     if (hasTime) {
-      const times = allPoints
-        .map((p) => {
-          const ts = p[timeF];
-          /* eslint-disable-next-line no-nested-ternary */
-          return ts ? (Number.isNaN(Number(ts)) ? new Date(ts).getTime() : Number(ts)) : 0;
-        })
-        .filter(Boolean);
-      timeMax = Math.max(...times);
+      const times = allPoints.map((p) => toTimestamp(p[timeF])).filter(Boolean);
+      const timeMin = Math.min(...times);
+      const timeMax = Math.max(...times);
       timeWindow = timeMax;
 
-      timeBar = document.createElement('div');
-      timeBar.className = 'ev-timebar';
+      timeBar = el('div', 'ev-timebar');
 
-      const playBtn = document.createElement('button');
-      playBtn.className = 'ev-timebar-play';
-      playBtn.title = 'Play / pause time animation';
-      playBtn.textContent = '▶';
+      const playBtn = el('button', 'ev-timebar-play', '▶');
+      playBtn.title = 'Play time animation';
 
       const slider = document.createElement('input');
       slider.type = 'range';
       slider.className = 'ev-timebar-slider';
-      slider.min = String(Math.min(...times));
+      slider.min = String(timeMin);
       slider.max = String(timeMax);
       slider.value = String(timeMax);
-      slider.step = String(Math.max(1, Math.round((timeMax - Math.min(...times)) / 200)));
+      slider.step = String(Math.max(1, Math.round((timeMax - timeMin) / 200)));
 
-      const timeLbl = document.createElement('span');
-      timeLbl.className = 'ev-timebar-label';
-      timeLbl.textContent = new Date(timeMax).toUTCString();
+      const timeLbl = el('span', 'ev-timebar-label', new Date(timeMax).toUTCString());
 
-      slider.addEventListener('input', () => {
-        timeWindow = Number(slider.value);
-        timeLbl.textContent = new Date(timeWindow).toUTCString();
-        applyTimeFilter(Number(slider.min));
-        // show points up to slider position
+      const applySlider = (val) => {
+        const t = Number(val);
+        timeLbl.textContent = new Date(t).toUTCString();
         if (pointsGroup) {
           pointsGroup.children.forEach((mesh) => {
             const ts = mesh.userData.point[timeF];
-            if (!ts) { mesh.visible = true; return; }
-            const t = Number.isNaN(Number(ts)) ? new Date(ts).getTime() : Number(ts);
-            mesh.visible = t <= timeWindow;
+            mesh.visible = !ts || toTimestamp(ts) <= t;
           });
         }
+      };
+
+      slider.addEventListener('input', () => {
+        timeWindow = Number(slider.value);
+        applySlider(timeWindow);
       });
 
       playBtn.addEventListener('click', () => {
         timePlaying = !timePlaying;
         playBtn.textContent = timePlaying ? '⏸' : '▶';
         if (timePlaying) {
-          const minT = Number(slider.min);
-          if (timeWindow >= timeMax) timeWindow = minT;
-          const step = (timeMax - minT) / 300;
+          if (timeWindow >= timeMax) timeWindow = timeMin;
+          const step = (timeMax - timeMin) / 300;
           const tick = () => {
             if (!timePlaying) return;
             timeWindow = Math.min(timeWindow + step, timeMax);
             slider.value = String(timeWindow);
-            timeLbl.textContent = new Date(timeWindow).toUTCString();
-            if (pointsGroup) {
-              pointsGroup.children.forEach((mesh) => {
-                const ts = mesh.userData.point[timeF];
-                if (!ts) { mesh.visible = true; return; }
-                const t = Number.isNaN(Number(ts)) ? new Date(ts).getTime() : Number(ts);
-                mesh.visible = t <= timeWindow;
-              });
-            }
+            applySlider(timeWindow);
             if (timeWindow < timeMax) {
               requestAnimationFrame(tick);
             } else {
@@ -755,11 +780,10 @@ export default async function decorate(block) {
     selectedIdx = -1;
   };
 
-  // ── Authoring toolbar ─────────────────────────────────────────────────────
+  // ── Authoring toolbar ──────────────────────────────────────────────────────
   if (isAuthoringEnv()) {
     const toolbar = buildToolbar(config, (updated) => {
       Object.assign(config, updated);
-      // Refresh globe mode buttons
       toolbar.querySelectorAll('.ev-toolbar-btn[data-mode]').forEach((b) => {
         b.classList.toggle('active', b.dataset.mode === config['globe-mode']);
       });
@@ -768,6 +792,5 @@ export default async function decorate(block) {
     shell.append(toolbar);
   }
 
-  // ── Initial render ──────────────────────────────────────────────────────────
   await renderGlobe(config);
 }
