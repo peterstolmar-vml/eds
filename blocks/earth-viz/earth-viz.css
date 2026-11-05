@@ -39,6 +39,7 @@
   flex-direction: column;
   transition: width 0.25s ease, opacity 0.25s ease;
   overflow: hidden;
+  position: relative;
 }
 
 .ev-panel.collapsed {
@@ -144,12 +145,20 @@
   margin-top: 2px;
 }
 
-/* Detail card */
-.ev-detail {
-  padding: 12px;
-  background: #111827;
-  border-top: 1px solid #1e2a4a;
+.ev-panel-arrow {
+  font-size: 14px;
+  color: #5a7a9a;
   flex-shrink: 0;
+  transition: transform 0.15s;
+  margin-left: auto;
+  padding-left: 4px;
+}
+
+/* ── Detail accordion (inline under row) ────────────────────── */
+.ev-detail {
+  padding: 10px 12px 10px 52px;
+  background: #0a1020;
+  border-bottom: 1px solid #1e2a4a;
   font-size: 11px;
   color: #a0b8cc;
   max-height: 180px;
@@ -288,72 +297,6 @@
   background: linear-gradient(180deg, #444 0%, #222 100%);
 }
 
-/* ── Panel toggle button (on globe edge) ─────────────────────── */
-.ev-panel-toggle {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid #2a4a7a;
-  background: rgb(8 12 20 / 80%);
-  color: #7eb8f7;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-}
-
-.ev-panel-toggle:hover {
-  background: rgb(26 42 74 / 90%);
-}
-
-/* ── Loading / error overlays ────────────────────────────────── */
-.ev-loading,
-.ev-error {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #7eb8f7;
-  font-size: 13px;
-  background: rgb(0 0 0 / 70%);
-  z-index: 20;
-  pointer-events: none;
-}
-
-.ev-error {
-  color: #f87171;
-}
-
-/* ── Responsive ──────────────────────────────────────────────── */
-@media (width <= 768px) {
-  .ev-stage {
-    flex-direction: column;
-  }
-
-  .ev-panel {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid #1e2a4a;
-    max-height: 220px;
-  }
-
-  .ev-panel.collapsed {
-    width: 100%;
-    max-height: 0;
-    opacity: 0;
-  }
-
-  .ev-panel-toggle {
-    display: none;
-  }
-}
 /* ── Globe controls (spin + reset) ──────────────────────────── */
 .ev-globe-controls {
   position: absolute;
@@ -412,12 +355,6 @@
 .ev-panel-tab.collapsed {
   border-right: 1px solid #1e2a4a;
   border-radius: 4px;
-  left: -28px;
-}
-
-/* Remove old toggle button styles — replaced by tab */
-.ev-panel-toggle {
-  display: none;
 }
 
 /* ── Sort bar ────────────────────────────────────────────────── */
@@ -489,20 +426,45 @@
   text-align: center;
 }
 
-/* ── Detail accordion (inline in list) ──────────────────────── */
-.ev-detail {
-  padding: 10px 12px 10px 52px;
-  background: #0a1020;
-  border-bottom: 1px solid #1e2a4a;
-  font-size: 11px;
-  color: #a0b8cc;
+/* ── Loading / error overlays ────────────────────────────────── */
+.ev-loading,
+.ev-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7eb8f7;
+  font-size: 13px;
+  background: rgb(0 0 0 / 70%);
+  z-index: 20;
+  pointer-events: none;
 }
 
-.ev-panel-arrow {
-  font-size: 14px;
-  color: #5a7a9a;
-  flex-shrink: 0;
-  transition: transform 0.15s;
-  margin-left: auto;
-  padding-left: 4px;
+.ev-error {
+  color: #f87171;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ev-stage {
+    flex-direction: column;
+  }
+
+  .ev-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #1e2a4a;
+    max-height: 220px;
+  }
+
+  .ev-panel.collapsed {
+    width: 100%;
+    max-height: 0;
+    opacity: 0;
+  }
+
+  .ev-panel-tab {
+    display: none;
+  }
 }
