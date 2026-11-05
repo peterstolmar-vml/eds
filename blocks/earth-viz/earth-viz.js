@@ -419,8 +419,13 @@ const buildToolbar = (config, onUpdate) => {
   const pencil = el('button', 'ev-toolbar-pencil', '✎ Configure');
   pencil.title = 'Open full configuration dialog';
   pencil.addEventListener('click', async () => {
-    const { default: openDialog } = await import('./earth-viz-dialog.js');
-    openDialog(config, (updated) => onUpdate(updated));
+    try {
+      const { default: openDialog } = await import('./earth-viz-dialog.js');
+      openDialog(config, (updated) => onUpdate(updated));
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('earth-viz-dialog failed to load:', e);
+    }
   });
   toolbar.append(pencil);
 
