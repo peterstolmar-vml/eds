@@ -1,0 +1,281 @@
+/* ── Data Viz block ──────────────────────────────────────────── */
+.data-viz {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #080c14;
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 4px 32px rgb(119 34 255 / 18%);
+}
+
+.dv-canvas-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+}
+
+.dv-canvas-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Header bar ──────────────────────────────────────────────── */
+.dv-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgb(8 12 20 / 90%);
+  border-bottom: 1px solid rgb(119 34 255 / 30%);
+  flex-shrink: 0;
+}
+
+.dv-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #cf0;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.dv-globe-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.dv-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgb(119 34 255 / 50%);
+  background: rgb(8 12 20 / 80%);
+  color: #cf0;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.dv-icon-btn:hover {
+  background: rgb(119 34 255 / 30%);
+}
+
+.dv-icon-btn.active {
+  color: #fff;
+  border-color: #cf0;
+  background: rgb(119 34 255 / 40%);
+}
+
+/* ── Time scrub ──────────────────────────────────────────────── */
+.dv-timebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #080c14;
+  border-top: 1px solid rgb(119 34 255 / 20%);
+  flex-shrink: 0;
+}
+
+.dv-timebar-play {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgb(119 34 255 / 50%);
+  background: rgb(8 12 20 / 80%);
+  color: #cf0;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.dv-timebar-play:hover {
+  background: rgb(119 34 255 / 30%);
+}
+
+.dv-timebar-slider {
+  flex: 1;
+  accent-color: #72f;
+  cursor: pointer;
+}
+
+.dv-timebar-label {
+  font-size: 10px;
+  color: rgb(204 255 0 / 70%);
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────── */
+.dv-tooltip {
+  position: absolute;
+  background: rgb(8 12 20 / 95%);
+  border: 1px solid rgb(119 34 255 / 60%);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #c8d8e8;
+  pointer-events: none;
+  z-index: 20;
+  max-width: 220px;
+  box-shadow: 0 4px 16px rgb(119 34 255 / 20%);
+}
+
+.dv-tooltip strong {
+  display: block;
+  color: #cf0;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+/* ── Filter bar ──────────────────────────────────────────────── */
+.dv-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  background: rgb(8 12 20 / 80%);
+  border-top: 1px solid rgb(119 34 255 / 20%);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.dv-filter-label {
+  font-size: 10px;
+  color: rgb(204 255 0 / 70%);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.dv-filter-select {
+  background: #111827;
+  border: 1px solid rgb(119 34 255 / 40%);
+  border-radius: 3px;
+  color: #c8d8e8;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+/* ── Authoring toolbar ───────────────────────────────────────── */
+.dv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #d0d0d0;
+  border-top: 2px solid #aaa;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.dv-toolbar-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #555;
+  margin-right: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dv-toolbar-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  border: 1px solid #999;
+  border-radius: 10px;
+  background: #e8e8e8;
+  cursor: pointer;
+  color: #333;
+  transition: background 0.12s;
+}
+
+.dv-toolbar-btn:hover {
+  background: #d0d0d0;
+}
+
+.dv-toolbar-btn.active {
+  background: #72f;
+  color: #fff;
+  border-color: #50c;
+}
+
+.dv-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: #bbb;
+  margin: 0 2px;
+}
+
+.dv-toolbar-pencil {
+  margin-left: auto;
+  padding: 4px 12px;
+  font-size: 11px;
+  border: 1px solid #888;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 100%);
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.dv-toolbar-pencil:hover {
+  background: linear-gradient(180deg, #444 0%, #222 100%);
+}
+
+/* ── Preset select in toolbar ────────────────────────────────── */
+.dv-toolbar-preset {
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 11px;
+  padding: 3px 6px;
+  max-width: 200px;
+  cursor: pointer;
+}
+
+/* ── Loading / error ─────────────────────────────────────────── */
+.dv-loading,
+.dv-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  background: rgb(0 0 0 / 75%);
+  z-index: 20;
+  pointer-events: none;
+  color: #cf0;
+}
+
+.dv-error {
+  color: #f87171;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (width <= 768px) {
+  .dv-canvas-wrap {
+    min-height: 320px;
+  }
+
+  .dv-toolbar {
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .dv-toolbar-preset {
+    max-width: 140px;
+  }
+}
