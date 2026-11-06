@@ -1,0 +1,650 @@
+/* storefront.css — SkyLink Commerce Optimizer */
+
+/* ── Design tokens ───────────────────────────────────────────── */
+.storefront {
+  --sf-sky: #0a1628;
+  --sf-sky-mid: #0e2044;
+  --sf-accent: #00c8ff;
+  --sf-accent-hover: #33d4ff;
+  --sf-highlight: #f9c030;
+  --sf-good: #22c55e;
+  --sf-ok: #f59e0b;
+  --sf-slow: #ef4444;
+  --sf-text: #f0f4ff;
+  --sf-text-dim: #8ba0c0;
+  --sf-surface: #0d1f3c;
+  --sf-surface-raised: #122347;
+  --sf-border: #1e3a60;
+  --sf-radius: 12px;
+  --sf-radius-sm: 6px;
+  --sf-gap: 1.5rem;
+  --sf-transition: 0.22s ease;
+
+  background: var(--sf-sky);
+  color: var(--sf-text);
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+  padding: 0;
+}
+
+/* ── Loading / error ─────────────────────────────────────────── */
+.storefront .sf-loading,
+.storefront .sf-error {
+  color: var(--sf-text-dim);
+  padding: 2rem;
+  text-align: center;
+}
+
+/* ── Root wrapper ────────────────────────────────────────────── */
+.storefront .sf-root {
+  margin: 0 auto;
+  max-width: 1100px;
+  padding: 0 1rem 4rem;
+}
+
+/* ── ZIP section ─────────────────────────────────────────────── */
+.storefront .sf-zip-section {
+  padding: 3rem 0 2rem;
+  text-align: center;
+}
+
+.storefront .sf-zip-section h2 {
+  color: var(--sf-text);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  margin-bottom: 0.5rem;
+}
+
+.storefront .sf-zip-section > p {
+  color: var(--sf-text-dim);
+  margin-bottom: 1.5rem;
+}
+
+.storefront .sf-zip-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.storefront .sf-zip-input {
+  background: var(--sf-surface-raised);
+  border: 1.5px solid var(--sf-border);
+  border-radius: var(--sf-radius-sm);
+  color: var(--sf-text);
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  padding: 0.65rem 1rem;
+  text-align: center;
+  transition: border-color var(--sf-transition);
+  width: 11rem;
+}
+
+.storefront .sf-zip-input:focus {
+  border-color: var(--sf-accent);
+  outline: none;
+}
+
+/* ── Signal bars ─────────────────────────────────────────────── */
+.storefront .sf-signal-bars {
+  align-items: flex-end;
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.storefront .sf-bar {
+  background: var(--sf-border);
+  border-radius: 2px;
+  display: inline-block;
+  transition: background var(--sf-transition);
+  width: 5px;
+}
+
+.storefront .sf-bar:nth-child(1) { height: 6px; }
+
+.storefront .sf-bar:nth-child(2) { height: 9px; }
+
+.storefront .sf-bar:nth-child(3) { height: 12px; }
+
+.storefront .sf-bar:nth-child(4) { height: 15px; }
+
+.storefront .sf-bar:nth-child(5) { height: 18px; }
+
+.storefront .sf-bar.active { background: var(--sf-accent); }
+
+/* ── ZIP result ──────────────────────────────────────────────── */
+.storefront .sf-zip-result {
+  margin-top: 1rem;
+}
+
+.storefront .sf-zip-signal {
+  background: var(--sf-surface);
+  border: 1px solid var(--sf-border);
+  border-radius: var(--sf-radius);
+  display: inline-block;
+  padding: 1rem 1.5rem;
+  text-align: left;
+}
+
+.storefront .sf-zip-signal p {
+  margin: 0 0 0.25rem;
+}
+
+.storefront .sf-zip-signal-sub {
+  color: var(--sf-text-dim);
+  font-size: 0.82rem;
+}
+
+.storefront .sf-zip-error { color: var(--sf-slow); }
+
+/* ── Plans heading ───────────────────────────────────────────── */
+.storefront .sf-plans-heading {
+  padding: 2rem 0 1rem;
+  text-align: center;
+}
+
+.storefront .sf-plans-heading h2 {
+  font-size: clamp(1.3rem, 2.5vw, 1.75rem);
+  margin-bottom: 0.25rem;
+}
+
+.storefront .sf-plans-signal-note {
+  color: var(--sf-text-dim);
+  font-size: 0.85rem;
+}
+
+/* ── Plans grid ──────────────────────────────────────────────── */
+.storefront .sf-plans-grid {
+  align-items: start;
+  display: grid;
+  gap: var(--sf-gap);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* ── Plan card ───────────────────────────────────────────────── */
+.storefront .sf-plan-card {
+  background: var(--sf-surface);
+  border: 1.5px solid var(--sf-border);
+  border-radius: var(--sf-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.75rem 1.5rem;
+  position: relative;
+  transition: border-color var(--sf-transition), transform var(--sf-transition);
+}
+
+.storefront .sf-plan-card:hover {
+  border-color: #2a6aaa;
+  transform: translateY(-2px);
+}
+
+.storefront .sf-plan-card-highlight {
+  background: var(--sf-sky-mid);
+  border-color: var(--sf-accent);
+}
+
+.storefront .sf-plan-card-selected {
+  border-color: var(--sf-highlight);
+  box-shadow: 0 0 0 3px rgb(249 192 48 / 25%);
+}
+
+.storefront .sf-plan-badge {
+  background: var(--sf-accent);
+  border-radius: 20px;
+  color: var(--sf-sky);
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.75rem;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.storefront .sf-plan-card-highlight .sf-plan-badge {
+  background: var(--sf-highlight);
+}
+
+.storefront .sf-plan-name {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.storefront .sf-plan-tagline {
+  color: var(--sf-text-dim);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.storefront .sf-plan-speed {
+  align-items: baseline;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.storefront .sf-plan-dl {
+  color: var(--sf-accent);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.storefront .sf-plan-speed-label {
+  color: var(--sf-text-dim);
+  font-size: 0.82rem;
+}
+
+/* ── Latency indicator ───────────────────────────────────────── */
+.storefront .sf-plan-latency {
+  align-items: center;
+  display: flex;
+  font-size: 0.85rem;
+  gap: 0.4rem;
+}
+
+.storefront .sf-latency-dot {
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  height: 8px;
+  width: 8px;
+}
+
+.storefront .sf-latency-good .sf-latency-dot { background: var(--sf-good); }
+
+.storefront .sf-latency-ok .sf-latency-dot { background: var(--sf-ok); }
+
+.storefront .sf-latency-slow .sf-latency-dot { background: var(--sf-slow); }
+
+.storefront .sf-latency-good .sf-latency-text { color: var(--sf-good); }
+
+.storefront .sf-latency-ok .sf-latency-text { color: var(--sf-ok); }
+
+.storefront .sf-latency-slow .sf-latency-text { color: var(--sf-slow); }
+
+/* ── Plan price ──────────────────────────────────────────────── */
+.storefront .sf-plan-price {
+  align-items: baseline;
+  display: flex;
+  gap: 0.15rem;
+}
+
+.storefront .sf-plan-price-amount {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.storefront .sf-plan-price-period {
+  color: var(--sf-text-dim);
+  font-size: 0.85rem;
+}
+
+.storefront .sf-plan-setup {
+  color: var(--sf-text-dim);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.storefront .sf-plan-setup-free {
+  color: var(--sf-good);
+  font-weight: 600;
+}
+
+/* ── Plan features ───────────────────────────────────────────── */
+.storefront .sf-plan-features {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.storefront .sf-plan-features li {
+  font-size: 0.88rem;
+  padding: 0.22rem 0 0.22rem 1.2rem;
+  position: relative;
+}
+
+.storefront .sf-plan-features li::before {
+  color: var(--sf-accent);
+  content: '✓';
+  left: 0;
+  position: absolute;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.storefront .sf-btn-primary {
+  background: var(--sf-accent);
+  border: none;
+  border-radius: var(--sf-radius-sm);
+  color: var(--sf-sky);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.7rem 1.5rem;
+  transition: background var(--sf-transition), transform var(--sf-transition);
+  width: 100%;
+}
+
+.storefront .sf-btn-primary:hover {
+  background: var(--sf-accent-hover);
+  transform: translateY(-1px);
+}
+
+.storefront .sf-btn-primary:active { transform: none; }
+
+.storefront .sf-btn-secondary {
+  background: transparent;
+  border: 1.5px solid var(--sf-accent);
+  border-radius: var(--sf-radius-sm);
+  color: var(--sf-accent);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.65rem 1.5rem;
+  transition: background var(--sf-transition);
+}
+
+.storefront .sf-btn-secondary:hover {
+  background: rgb(0 200 255 / 10%);
+}
+
+/* ── Add-ons section ─────────────────────────────────────────── */
+.storefront .sf-addons-section {
+  padding: 2.5rem 0;
+}
+
+.storefront .sf-addons-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.storefront .sf-addons-section > p {
+  color: var(--sf-text-dim);
+  margin-bottom: 1.5rem;
+}
+
+.storefront .sf-addons-list {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 2rem;
+}
+
+.storefront .sf-addon-item {
+  align-items: center;
+  background: var(--sf-surface);
+  border: 1.5px solid var(--sf-border);
+  border-radius: var(--sf-radius);
+  cursor: pointer;
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  transition: border-color var(--sf-transition);
+}
+
+.storefront .sf-addon-item:hover { border-color: #2a6aaa; }
+
+.storefront .sf-addon-item:has(.sf-addon-cb:checked) {
+  background: var(--sf-sky-mid);
+  border-color: var(--sf-accent);
+}
+
+.storefront .sf-addon-cb {
+  accent-color: var(--sf-accent);
+  flex-shrink: 0;
+  height: 1.1rem;
+  width: 1.1rem;
+}
+
+.storefront .sf-addon-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.storefront .sf-addon-info strong { font-size: 0.95rem; }
+
+.storefront .sf-addon-info span {
+  color: var(--sf-text-dim);
+  font-size: 0.82rem;
+}
+
+.storefront .sf-addon-price {
+  color: var(--sf-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.storefront .sf-addons-cta { max-width: 340px; }
+
+/* ── Checkout section ────────────────────────────────────────── */
+.storefront .sf-checkout-section { padding: 2.5rem 0; }
+
+.storefront .sf-checkout-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.storefront .sf-checkout-form {
+  background: var(--sf-surface);
+  border: 1px solid var(--sf-border);
+  border-radius: var(--sf-radius);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+}
+
+.storefront .sf-fieldset {
+  border: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+}
+
+.storefront .sf-fieldset legend {
+  color: var(--sf-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.storefront .sf-field { margin-bottom: 1rem; }
+
+.storefront .sf-field label {
+  color: var(--sf-text-dim);
+  display: block;
+  font-size: 0.82rem;
+  margin-bottom: 0.35rem;
+}
+
+.storefront .sf-field input,
+.storefront .sf-field select {
+  background: var(--sf-sky-mid);
+  border: 1.5px solid var(--sf-border);
+  border-radius: var(--sf-radius-sm);
+  color: var(--sf-text);
+  font-size: 0.95rem;
+  padding: 0.6rem 0.85rem;
+  transition: border-color var(--sf-transition);
+  width: 100%;
+}
+
+.storefront .sf-field input:focus,
+.storefront .sf-field select:focus {
+  border-color: var(--sf-accent);
+  outline: none;
+}
+
+.storefront .sf-field input.sf-invalid,
+.storefront .sf-field select.sf-invalid {
+  border-color: var(--sf-slow);
+}
+
+.storefront .sf-field-row {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.storefront .sf-field-zip { max-width: 140px; }
+
+/* ── Order summary ───────────────────────────────────────────── */
+.storefront .sf-checkout-summary {
+  background: var(--sf-sky-mid);
+  border: 1px solid var(--sf-border);
+  border-radius: var(--sf-radius-sm);
+  margin-bottom: 1.25rem;
+  padding: 1.25rem;
+}
+
+.storefront .sf-checkout-summary h3 {
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+}
+
+.storefront .sf-summary-line {
+  display: flex;
+  font-size: 0.9rem;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+}
+
+.storefront .sf-summary-line-muted {
+  color: var(--sf-text-dim);
+  font-size: 0.82rem;
+}
+
+.storefront .sf-summary-total-line {
+  border-top: 1px solid var(--sf-border);
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.storefront .sf-legal {
+  color: var(--sf-text-dim);
+  font-size: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.storefront .sf-btn-submit { margin-top: 0.25rem; }
+
+/* ── Confirmation ────────────────────────────────────────────── */
+.storefront .sf-confirmation {
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.storefront .sf-confirmation-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.storefront .sf-confirmation h2 {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  margin-bottom: 1rem;
+}
+
+.storefront .sf-confirmation p {
+  color: var(--sf-text-dim);
+  margin: 0 auto 2rem;
+  max-width: 520px;
+}
+
+/* ── Abandoned cart banner ───────────────────────────────────── */
+.storefront .sf-abandoned-cart {
+  background: var(--sf-sky-mid);
+  border: 1.5px solid var(--sf-highlight);
+  border-radius: var(--sf-radius);
+  bottom: 1.5rem;
+  box-shadow: 0 8px 32px rgb(0 0 0 / 50%);
+  max-width: 520px;
+  padding: 1.25rem 1.5rem;
+  position: fixed;
+  right: 1.5rem;
+  z-index: 200;
+}
+
+.storefront .sf-abandoned-close {
+  background: none;
+  border: none;
+  color: var(--sf-text-dim);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+}
+
+.storefront .sf-abandoned-body {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.storefront .sf-abandoned-icon {
+  flex-shrink: 0;
+  font-size: 1.75rem;
+}
+
+.storefront .sf-abandoned-body > div {
+  flex: 1;
+  min-width: 160px;
+}
+
+.storefront .sf-abandoned-body strong {
+  color: var(--sf-highlight);
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.storefront .sf-abandoned-body p {
+  color: var(--sf-text-dim);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.storefront .sf-btn-abandoned-cta {
+  flex-shrink: 0;
+  padding: 0.55rem 1.1rem;
+  width: auto;
+}
+
+/* ── Screen reader only ──────────────────────────────────────── */
+.storefront .sf-sr-only {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (width <= 600px) {
+  .storefront .sf-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .storefront .sf-field-zip { max-width: 100%; }
+
+  .storefront .sf-addons-cta { max-width: 100%; }
+
+  .storefront .sf-abandoned-cart {
+    border-radius: var(--sf-radius) var(--sf-radius) 0 0;
+    bottom: 0;
+    left: 0;
+    max-width: 100%;
+    right: 0;
+  }
+}
