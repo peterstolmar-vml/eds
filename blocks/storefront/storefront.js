@@ -478,7 +478,7 @@ export default async function decorate(block) {
 
   let data;
   try {
-    const res = await fetch(`${scPath}.plain.html`);
+    const res = await fetch(`https://main--eds--peterstolmar-vml.aem.page${scPath}.plain.html`);
     if (!res.ok) throw new Error(`${res.status}`);
     data = parseSCDoc(await res.text());
   } catch (err) {

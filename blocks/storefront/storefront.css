@@ -27,6 +27,30 @@
   padding: 0;
 }
 
+/* ── Hero text — force light on dark background ──────────────── */
+.hero h1,
+.hero h2,
+.hero p,
+.hero li,
+.hero a {
+  color: #f0f4ff;
+}
+
+.hero a {
+  background: #00c8ff;
+  border-radius: 6px;
+  color: #0a1628;
+  display: inline-block;
+  font-weight: 700;
+  padding: 0.65rem 1.5rem;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.hero a:hover {
+  background: #33d4ff;
+}
+
 /* ── Loading / error ─────────────────────────────────────────── */
 .storefront .sf-loading,
 .storefront .sf-error {
@@ -205,7 +229,7 @@
 
 .storefront .sf-plan-card-highlight .sf-plan-badge {
   background: var(--sf-highlight);
-}
+} 
 
 .storefront .sf-plan-name {
   font-size: 1.3rem;
