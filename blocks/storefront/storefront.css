@@ -27,6 +27,30 @@
   padding: 0;
 }
 
+/* ── Hero text — force light on dark background ──────────────── */
+.hero h1,
+.hero h2,
+.hero p,
+.hero li,
+.hero a {
+  color: #f0f4ff;
+}
+
+.hero a {
+  background: #00c8ff;
+  border-radius: 6px;
+  color: #0a1628;
+  display: inline-block;
+  font-weight: 700;
+  padding: 0.65rem 1.5rem;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.hero a:hover {
+  background: #33d4ff;
+}
+
 /* ── Loading / error ─────────────────────────────────────────── */
 .storefront .sf-loading,
 .storefront .sf-error {
@@ -190,6 +214,10 @@
   box-shadow: 0 0 0 3px rgb(249 192 48 / 25%);
 }
 
+.storefront .sf-plan-card-highlight .sf-plan-badge {
+  background: var(--sf-highlight);
+}
+
 .storefront .sf-plan-badge {
   background: var(--sf-accent);
   border-radius: 20px;
@@ -201,10 +229,6 @@
   padding: 0.2rem 0.75rem;
   text-transform: uppercase;
   width: fit-content;
-}
-
-.storefront .sf-plan-card-highlight .sf-plan-badge {
-  background: var(--sf-highlight);
 }
 
 .storefront .sf-plan-name {
@@ -631,7 +655,7 @@
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */
-@media (width <= 600px) {
+@media (max-width: 600px) {
   .storefront .sf-field-row {
     grid-template-columns: 1fr;
   }
