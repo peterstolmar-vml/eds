@@ -214,10 +214,6 @@
   box-shadow: 0 0 0 3px rgb(249 192 48 / 25%);
 }
 
-.storefront .sf-plan-card-highlight .sf-plan-badge {
-  background: var(--sf-highlight);
-}
-
 .storefront .sf-plan-badge {
   background: var(--sf-accent);
   border-radius: 20px;
@@ -230,6 +226,10 @@
   text-transform: uppercase;
   width: fit-content;
 }
+
+.storefront .sf-plan-card-highlight .sf-plan-badge {
+  background: var(--sf-highlight);
+} 
 
 .storefront .sf-plan-name {
   font-size: 1.3rem;
@@ -655,7 +655,7 @@
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */
-@media (max-width: 600px) {
+@media (width <= 600px) {
   .storefront .sf-field-row {
     grid-template-columns: 1fr;
   }
