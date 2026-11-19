@@ -11,7 +11,7 @@
  *   e.g. /demo/products/mondays-dark-roast
  */
 
-const SC_BASE = 'https://main--eds--peterstolmar-vml.aem.page';
+const SC_BASE = 'https://da-sc.adobeaem.workers.dev/preview/peterstolmar-vml/eds';
 
 // ─── SC parser ─────────────────────────────────────────────────────────────
 
@@ -74,7 +74,7 @@ const parseSCDoc = (html) => {
 };
 
 const fetchProduct = async (scPath) => {
-  const res = await fetch(`${SC_BASE}${scPath}.plain.html`);
+  const res = await fetch(`${SC_BASE}${scPath}`);
   if (!res.ok) throw new Error(`${res.status}`);
   return parseSCDoc(await res.text());
 };
