@@ -183,7 +183,7 @@ export default async function decorate(block) {
   const isCompare = block.classList.contains('compare');
   const isTile = block.classList.contains('tile');
 
-  const paths = [...block.querySelectorAll('div > div')]
+  const paths = [...block.querySelectorAll(':scope > div > div')]
     .map((el) => el.textContent.trim())
     .filter((t) => t.startsWith('/'));
 
