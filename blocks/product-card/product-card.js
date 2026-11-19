@@ -73,8 +73,8 @@ const parseSCDoc = (html) => {
   return parseNode(doc, root);
 };
 
-const fetchProduct = async (scPath) => {
-  const res = await fetch(`${SC_BASE}${scPath}`);
+const fetchProduct = async (path) => {
+  const res = await fetch(`${SC_BASE}${path}`, { credentials: 'include' });
   if (!res.ok) throw new Error(`${res.status}`);
   return parseSCDoc(await res.text());
 };
