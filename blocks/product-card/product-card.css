@@ -1,0 +1,330 @@
+/* product-card.css */
+
+/* ── Tokens ──────────────────────────────────────────────────── */
+.product-card {
+  --pc-dark: #1a0a00;
+  --pc-mid: #5c3317;
+  --pc-light: #f5e6d3;
+  --pc-cream: #fdf6ee;
+  --pc-accent: #c0392b;
+  --pc-gold: #d4a017;
+  --pc-green: #2e7d32;
+  --pc-border: #e8d5c0;
+  --pc-radius: 12px;
+  --pc-radius-sm: 6px;
+  --pc-shadow: 0 2px 16px rgb(0 0 0 / 8%);
+  --pc-transition: 0.2s ease;
+
+  font-family: system-ui, sans-serif;
+}
+
+/* ── Loading / error ─────────────────────────────────────────── */
+.product-card .pc-loading,
+.product-card .pc-error {
+  color: #888;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* ── Shared pills ────────────────────────────────────────────── */
+.product-card .pc-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.product-card .pc-pill {
+  background: var(--pc-light);
+  border-radius: 99px;
+  color: var(--pc-mid);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  text-transform: capitalize;
+}
+
+/* ── Shared stars ────────────────────────────────────────────── */
+.product-card .pc-star {
+  color: var(--pc-border);
+  font-size: 1rem;
+}
+
+.product-card .pc-star.filled {
+  color: var(--pc-gold);
+}
+
+/* ── Shared CTA buttons ──────────────────────────────────────── */
+.product-card .pc-cta {
+  background: var(--pc-accent);
+  border: none;
+  border-radius: var(--pc-radius-sm);
+  color: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  padding: 0.8rem 1.5rem;
+  transition: background var(--pc-transition), transform var(--pc-transition);
+  width: 100%;
+}
+
+.product-card .pc-cta:hover {
+  background: #a93226;
+  transform: translateY(-1px);
+}
+
+.product-card .pc-cta-sm {
+  background: var(--pc-accent);
+  border: none;
+  border-radius: var(--pc-radius-sm);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  transition: background var(--pc-transition);
+  white-space: nowrap;
+}
+
+.product-card .pc-cta-sm:hover {
+  background: #a93226;
+}
+
+/* ══ HERO variant ════════════════════════════════════════════════ */
+
+.product-card.hero {
+  background: linear-gradient(135deg, var(--pc-dark) 0%, var(--pc-mid) 100%);
+  border-radius: var(--pc-radius);
+  color: var(--pc-cream);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.product-card.hero .pc-hero-inner {
+  max-width: 640px;
+  padding: 2.5rem 2rem;
+}
+
+.product-card.hero .pc-hero-roast-band {
+  background: rgb(255 255 255 / 12%);
+  border-radius: 99px;
+  color: var(--pc-light);
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0.85rem;
+  text-transform: uppercase;
+}
+
+.product-card.hero .pc-hero-name {
+  color: #fff;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  margin: 0 0 1rem;
+}
+
+.product-card.hero .pc-hero-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.product-card.hero .pc-hero-price {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.product-card.hero .pc-hero-weight {
+  color: var(--pc-light);
+  font-size: 0.9rem;
+}
+
+.product-card.hero .pc-hero-rating {
+  align-items: center;
+  display: flex;
+  font-size: 0.9rem;
+  gap: 0.3rem;
+}
+
+.product-card.hero .pc-notes-label,
+.product-card.hero .pc-brew-label {
+  color: var(--pc-light);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.product-card.hero .pc-hero-notes {
+  margin-bottom: 1.25rem;
+}
+
+.product-card.hero .pc-hero-brew {
+  margin-bottom: 0.5rem;
+}
+
+.product-card.hero .pc-brew-value {
+  color: #fff;
+  font-weight: 600;
+}
+
+.product-card.hero .pc-cta {
+  background: #fff;
+  color: var(--pc-dark);
+  max-width: 320px;
+}
+
+.product-card.hero .pc-cta:hover {
+  background: var(--pc-light);
+}
+
+/* ══ TILE variant ════════════════════════════════════════════════ */
+
+.product-card.tile {
+  background: var(--pc-cream);
+}
+
+.product-card.tile .pc-tile-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.product-card.tile .pc-tile-inner {
+  background: #fff;
+  border: 1px solid var(--pc-border);
+  border-radius: var(--pc-radius);
+  box-shadow: var(--pc-shadow);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+}
+
+.product-card.tile .pc-tile-roast {
+  margin-bottom: 0.75rem;
+}
+
+.product-card.tile .pc-tile-name {
+  font-size: 1rem;
+  margin: 0 0 0.4rem;
+}
+
+.product-card.tile .pc-tile-rating {
+  align-items: center;
+  display: flex;
+  font-size: 0.82rem;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-card.tile .pc-tile-footer {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.product-card.tile .pc-tile-price {
+  color: var(--pc-dark);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+/* ── Roast bar (used in tile) ────────────────────────────────── */
+.product-card .pc-roast-bar {
+  background: var(--pc-border);
+  border-radius: 99px;
+  height: 5px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.product-card .pc-roast-fill {
+  background: linear-gradient(90deg, #d4a017 0%, #5c3317 100%);
+  border-radius: 99px;
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.product-card .pc-roast-label {
+  color: #888;
+  font-size: 0.72rem;
+  margin-top: 0.25rem;
+}
+
+/* ══ COMPARE variant ══════════════════════════════════════════════ */
+
+.product-card.compare {
+  overflow-x: auto;
+}
+
+.product-card.compare .pc-compare-wrap {
+  overflow-x: auto;
+}
+
+.product-card.compare .pc-compare-table {
+  border-collapse: collapse;
+  min-width: 480px;
+  width: 100%;
+}
+
+.product-card.compare .pc-compare-table thead th {
+  background: var(--pc-dark);
+  color: var(--pc-cream);
+  font-size: 1rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+}
+
+.product-card.compare .pc-compare-table thead th:first-child {
+  background: transparent;
+}
+
+.product-card.compare .pc-compare-table tbody tr {
+  border-bottom: 1px solid var(--pc-border);
+}
+
+.product-card.compare .pc-compare-table tbody tr:nth-child(even) {
+  background: var(--pc-cream);
+}
+
+.product-card.compare .pc-compare-table th[scope="row"] {
+  color: #666;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.85rem 1.25rem;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: 30%;
+}
+
+.product-card.compare .pc-compare-table td {
+  font-size: 0.95rem;
+  padding: 0.85rem 1.25rem;
+  vertical-align: middle;
+}
+
+.product-card.compare .pc-compare-table tfoot td {
+  padding: 1rem 1.25rem;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (width <= 600px) {
+  .product-card.hero .pc-hero-inner {
+    padding: 1.5rem 1rem;
+  }
+
+  .product-card.tile .pc-tile-grid {
+    grid-template-columns: 1fr;
+  }
+}
