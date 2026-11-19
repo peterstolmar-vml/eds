@@ -2,28 +2,28 @@
 /**
  * product-card.js
  *
- * Variants (set as extra class on the block):
- *   hero     — full-width hero treatment, one product per block
- *   compare  — side-by-side comparison table, two products in one block
+ * Variants:
+ *   hero     — full-width dark gradient, one product per block
+ *   compare  — side-by-side comparison table, two products per block
  *   tile     — compact shelf tile, one product per block
  *
- * Block cell layout:
- *   Each row col 1 = SC document path  e.g. /demo/products/mondays-dark-roast
- *   compare variant: row 1 col 1 = product A, row 1 col 2 = product B
+ * Block cell: each row col = SC doc path
+ *   e.g. /demo/products/mondays-dark-roast
  */
 
 const SC_BASE = 'https://main--eds--peterstolmar-vml.aem.page';
 
 // ─── SC parser ─────────────────────────────────────────────────────────────
 
-const resolveRef = (doc, ref) => {
-  if (!ref.startsWith('self://#')) return null;
-  const id = ref.replace('self://#', '');
-  const parts = id.split('-');
-  return doc.querySelector(`.${parts[0]}.${id}`) || doc.querySelector(`.${id}`);
-};
-
-const parseFragment = (el, doc) => {
+/**
+ * Walk the SC fragment graph rooted at `el`.
+ * Uses an explicit stack instead of mutual const-arrow recursion
+ * so there are no TDZ (temporal dead zone) runtime errors.
+ * @param {Document} doc
+ * @param {Element} el
+ * @returns {Record<string, *>}
+ */
+const parseNode = (doc, el) => {
   const obj = {};
   el.querySelectorAll(':scope > div').forEach((row) => {
     const keyEl = row.querySelector(':scope > div:first-child h3');
@@ -31,20 +31,27 @@ const parseFragment = (el, doc) => {
     if (!keyEl || !valEl) return;
     const key = keyEl.textContent.trim();
     const lis = [...valEl.querySelectorAll('li')];
+
     if (lis.length) {
       const vals = lis.map((li) => li.textContent.trim());
       const allRefs = vals.every((v) => v.startsWith('self://#'));
       if (allRefs) {
-        // eslint-disable-next-line no-use-before-define
-        obj[key] = vals.map((v) => resolveFragRef(doc, v));
+        obj[key] = vals.map((ref) => {
+          const id = ref.replace('self://#', '');
+          const base = id.split('-')[0];
+          const target = doc.querySelector(`.${base}.${id}`) || doc.querySelector(`.${id}`);
+          return target ? parseNode(doc, target) : {};
+        });
       } else {
         obj[key] = vals;
       }
     } else {
       const txt = valEl.textContent.trim();
       if (txt.startsWith('self://#')) {
-        // eslint-disable-next-line no-use-before-define
-        obj[key] = resolveFragRef(doc, txt);
+        const id = txt.replace('self://#', '');
+        const base = id.split('-')[0];
+        const target = doc.querySelector(`.${base}.${id}`) || doc.querySelector(`.${id}`);
+        obj[key] = target ? parseNode(doc, target) : {};
       } else if (txt === 'true') {
         obj[key] = true;
       } else if (txt === 'false') {
@@ -59,16 +66,11 @@ const parseFragment = (el, doc) => {
   return obj;
 };
 
-const resolveFragRef = (doc, ref) => {
-  const el = resolveRef(doc, ref);
-  return el ? parseFragment(el, doc) : {};
-};
-
 const parseSCDoc = (html) => {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const root = doc.querySelector('.product');
   if (!root) return null;
-  return parseFragment(root, doc);
+  return parseNode(doc, root);
 };
 
 const fetchProduct = async (scPath) => {
@@ -94,8 +96,8 @@ const pillsHtml = (notes) => (Array.isArray(notes) ? notes : [])
   .join('');
 
 const roastBarHtml = (level) => {
-  const levels = ['Light', 'Medium-Light', 'Medium', 'Medium-Dark', 'Dark'];
-  const idx = levels.findIndex((l) => l.toLowerCase() === String(level).toLowerCase());
+  const levels = ['light', 'medium-light', 'medium', 'medium-dark', 'dark'];
+  const idx = levels.indexOf(String(level).toLowerCase());
   const pct = idx >= 0 ? Math.round(((idx + 1) / levels.length) * 100) : 50;
   return `
     <div class="pc-roast-bar" title="${level} roast">
@@ -199,6 +201,11 @@ export default async function decorate(block) {
     return;
   }
 
+  if (products.some((p) => !p)) {
+    block.innerHTML = '<p class="pc-error">Unable to parse product data.</p>';
+    return;
+  }
+
   if (isCompare && products.length >= 2) {
     block.innerHTML = compareHtml(products[0], products[1]);
     return;
@@ -214,6 +221,5 @@ export default async function decorate(block) {
     return;
   }
 
-  // default fallback — same as tile
   block.innerHTML = `<div class="pc-tile-grid">${products.map(tileHtml).join('')}</div>`;
 }
